@@ -8,6 +8,9 @@ import {
   defaultLineup,
   fillEmptySlots,
   randomLineup,
+  removeFabric,
+  usableCollection,
+  visibleFabrics,
   fabricFor,
   fabricUsage,
   repeatedFabricBlocks,
@@ -352,5 +355,101 @@ describe('randomLineup', () => {
     const d = randomLineup(stacks, collection, start, 3);
     expect(d.overrides).toEqual(start.overrides);
     expect(d.cells).toEqual(start.cells);
+  });
+});
+
+describe('removeFabric', () => {
+  it('empties the slots and drops the hand-placed pieces that use it', () => {
+    const base = createDesign(stacks, collection, 'crib');
+    const gone = base.lineup[2]!;
+    const other = collection.fabrics.find((f) => !base.lineup.includes(f.id))!.id;
+    const d = { ...base, overrides: { '0:A': gone, '1:B': other, '4:C': gone } };
+    const out = removeFabric(d, gone);
+    expect(out.lineup[2]).toBeNull();
+    expect(out.lineup.filter((id) => id === null)).toHaveLength(1);
+    expect(out.overrides).toEqual({ '1:B': other });
+    expect(out.cells).toEqual(d.cells);
+    expect(d.lineup[2]).toBe(gone);
+  });
+
+  it('returns the design untouched when the fabric is not used', () => {
+    const d = createDesign(stacks, collection, 'crib');
+    const unused = collection.fabrics.find((f) => !d.lineup.includes(f.id))!.id;
+    expect(removeFabric(d, unused)).toBe(d);
+  });
+});
+
+describe('picking with hidden fabrics', () => {
+  const sizes = ['crib', 'throw', 'twin', 'full', 'queen', 'king'];
+  /**
+   * A stack of n slots can keep every block free of repeats with k fabrics when
+   * it splits into R runs of distinct fabrics, each 9 to k long: 9R <= n <= kR.
+   */
+  const repeatFreePossible = (n: number, k: number) => {
+    for (let r = 1; 9 * r <= n; r++) if (n <= k * r) return true;
+    return false;
+  };
+
+  it.each(Array.from({ length: 12 }, (_, i) => i))('never uses a hidden fabric with %i hidden, and avoids repeats where possible', (count) => {
+    const excluded = new Set(collection.fabrics.slice(0, count).map((f) => f.id));
+    const usable = usableCollection(collection, excluded);
+    expect(usable.fabrics).toHaveLength(20 - count);
+    for (const id of sizes) {
+      const size = getSize(stacks, id);
+      for (let seed = 1; seed <= 4; seed++) {
+        const r = randomLineup(stacks, usable, createEmptyDesign(stacks, id), seed);
+        expect(r.lineup.some((f) => f === null || excluded.has(f))).toBe(false);
+        if (repeatFreePossible(r.lineup.length, usable.fabrics.length)) {
+          expect(repeatedFabricBlocks(stacks, r.lineup, size.cols * size.rows)).toBe(0);
+        }
+      }
+      // With one pick kept, filling the rest is best effort, but never uses a hidden fabric.
+      const part = setLineupSlot(createEmptyDesign(stacks, id), 0, usable.fabrics[0]!.id);
+      const partFilled = fillEmptySlots(stacks, usable, part);
+      expect(partFilled.lineup.some((f) => f === null || excluded.has(f))).toBe(false);
+      const filled = fillEmptySlots(stacks, usable, createEmptyDesign(stacks, id));
+      expect(filled.lineup.some((f) => f === null || excluded.has(f))).toBe(false);
+      if (repeatFreePossible(filled.lineup.length, usable.fabrics.length)) {
+        expect(repeatedFabricBlocks(stacks, filled.lineup, size.cols * size.rows)).toBe(0);
+      }
+    }
+  });
+
+  it.each([1, 2])('finishes with only %i fabrics left', (left) => {
+    const excluded = new Set(collection.fabrics.slice(left).map((f) => f.id));
+    const usable = usableCollection(collection, excluded);
+    for (const id of sizes) {
+      const r = randomLineup(stacks, usable, createEmptyDesign(stacks, id), 9);
+      expect(r.lineup.every((f) => f !== null && !excluded.has(f))).toBe(true);
+      const filled = fillEmptySlots(stacks, usable, createEmptyDesign(stacks, id));
+      expect(filled.lineup.every((f) => f !== null && !excluded.has(f))).toBe(true);
+    }
+  });
+
+  it('the possible cases are the ones checked', () => {
+    // 11 hidden leaves 9: only the king (36 = 4 runs of 9) and the crib can avoid repeats.
+    expect(['crib', 'throw', 'twin', 'full', 'queen', 'king'].map((id) => {
+      const s = getSize(stacks, id);
+      return repeatFreePossible(s.cols * s.rows, 9);
+    })).toEqual([true, false, false, false, false, true]);
+  });
+
+  it('keeps the full collection when nothing is hidden', () => {
+    expect(usableCollection(collection, new Set())).toBe(collection);
+  });
+});
+
+describe('visibleFabrics', () => {
+  const hidden = new Set(['d0-c1', 'd3-c2']);
+  it('drops hidden fabrics outside the hide mode', () => {
+    const out = visibleFabrics(collection.fabrics, hidden, false);
+    expect(out).toHaveLength(18);
+    expect(out.some((f) => hidden.has(f.id))).toBe(false);
+  });
+  it('shows every fabric in the hide mode, in collection order', () => {
+    expect(visibleFabrics(collection.fabrics, hidden, true)).toEqual(collection.fabrics);
+  });
+  it('returns the same list when nothing is hidden', () => {
+    expect(visibleFabrics(collection.fabrics, new Set(), false)).toBe(collection.fabrics);
   });
 });

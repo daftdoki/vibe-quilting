@@ -4,6 +4,9 @@ import {
   clearOverride,
   createEmptyDesign,
   isEmptyDesign,
+  removeFabric,
+  usableCollection,
+  visibleFabrics,
   fabricUsage,
   fillEmptySlots,
   getSize,
@@ -18,7 +21,7 @@ import {
 } from '../core/design';
 import { piecesForSlot, resolvePieces } from '../core/layout';
 import { loadHintSeen, saveHintSeen } from '../core/storage';
-import type { ProjectDef } from '../core/types';
+import type { FabricDef, ProjectDef } from '../core/types';
 import { FabricTray } from './FabricTray';
 import { FatQuarterExplainer } from './FatQuarterDiagram';
 import { GuideCard } from './guide/GuideCard';
@@ -39,6 +42,7 @@ import { buildScene, type Highlights } from './renderQuilt';
 import { Sheet } from './Sheet';
 import { SizePicker } from './SizePicker';
 import { useDesign } from './useDesign';
+import { useExcluded } from './useExcluded';
 import { useFabricDrag, type DropResult } from './useFabricDrag';
 import { useMediaQuery, WIDE_QUERY } from './useMediaQuery';
 import { REASONS, useVersions } from './versions/useVersions';
@@ -83,7 +87,11 @@ export function Workspace({ project }: { project: ProjectDef }) {
   const data = useDataTransfer(setToast);
   // Big changes save an automatic version first, so they can be got back after a reload.
   const checkpoint = versions.updateWithCheckpoint;
-  const guide = useGuide(project, ds, checkpoint);
+  // Fabrics she hid. They leave the fabric list, and Fill the rest and Pick at random never choose them.
+  const excluded = useExcluded(project);
+  const excludedIds = excluded.ids;
+  const usable = useMemo(() => usableCollection(collection, excludedIds), [collection, excludedIds]);
+  const guide = useGuide(project, ds, checkpoint, usable);
   const guideControl = guide.control;
   /** Slot picked in the fat quarter stack outside the guide. */
   const [lineupSlot, setLineupSlotPick] = useState<number | null>(null);
@@ -210,14 +218,40 @@ export function Workspace({ project }: { project: ProjectDef }) {
     [tapMode, selectedCell, activeId, pattern, update, hintSeen, dismissHint],
   );
 
+  /**
+   * Hide a fabric, or bring it back. Hiding one also takes it off this size's
+   * quilt in one undoable change. The last fabric cannot be hidden.
+   */
+  const toggleExcluded = useCallback(
+    (id: string) => {
+      const next = new Set(excludedIds);
+      if (next.has(id)) {
+        next.delete(id);
+        excluded.set(next);
+        return;
+      }
+      if (collection.fabrics.filter((f) => !next.has(f.id)).length <= 1) {
+        setToast('Keep at least one fabric.');
+        return;
+      }
+      next.add(id);
+      excluded.set(next);
+      if (removeFabric(design, id) !== design) checkpoint(REASONS.leaveOut, (d) => removeFabric(d, id));
+      setActiveId((cur) => (cur === id ? null : cur));
+    },
+    [excludedIds, excluded, collection, design, checkpoint],
+  );
+
   const onDrop = useCallback(
     ({ fabricId, piece, slot }: DropResult) => {
+      // A hidden fabric is not in the list, so it cannot be dragged. Refuse it anyway.
+      if (excludedIds.has(fabricId)) return;
       // The guide only lets a drag start in steps where painting is allowed.
       if (piece) update((d) => setOverride(pattern, d, piece.blockId, piece.pieceId, fabricId));
       else if (slot !== null) update((d) => setLineupSlot(d, slot, fabricId));
       if (!hintSeen) dismissHint();
     },
-    [pattern, update, hintSeen, dismissHint],
+    [pattern, update, hintSeen, dismissHint, excludedIds],
   );
 
   const { dragProps, takeClickSuppression } = useFabricDrag({
@@ -234,9 +268,23 @@ export function Workspace({ project }: { project: ProjectDef }) {
   }, []);
 
   const fillFromTray = guide.fillFromTray;
+  const hiding = guide.hiding;
+  const hidingRef = useRef(hiding);
+  hidingRef.current = hiding;
+  const setHiding = guide.setHiding;
   const onTrayTap = useCallback(
-    (id: string) => (trayRole === 'fill' ? fillFromTray(id) : toggleFabric(id)),
-    [trayRole, fillFromTray, toggleFabric],
+    (id: string) => {
+      if (hiding) toggleExcluded(id);
+      else if (excludedIds.has(id)) return;
+      else if (trayRole === 'fill') fillFromTray(id);
+      else toggleFabric(id);
+    },
+    [hiding, toggleExcluded, excludedIds, trayRole, fillFromTray, toggleFabric],
+  );
+  // Hidden fabrics only show in the hide mode, where dragging is off. This is a second guard.
+  const trayDragProps = useCallback(
+    (f: FabricDef) => (trayRole === 'fill' || excludedIds.has(f.id) ? NO_DRAG() : dragProps(f)),
+    [trayRole, excludedIds, dragProps],
   );
 
   const [freshDropsVersions, setFreshDropsVersions] = useState(false);
@@ -348,8 +396,9 @@ export function Workspace({ project }: { project: ProjectDef }) {
     try {
       const blob = await renderPng(scene);
       const name = `${project.id}-${size.id}.png`;
-      await shareOrDownload(blob, name, `${project.title}, ${size.name}`, 'image/png');
-      setToast(`Exported ${name}`);
+      // False means she closed the share sheet without saving, so there is nothing to report.
+      const done = await shareOrDownload(blob, name, `${project.title}, ${size.name}`, 'image/png');
+      if (done) setToast(`Exported ${name}`);
     } catch {
       setToast('Export failed. Try again.');
     } finally {
@@ -374,6 +423,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
         e.preventDefault();
         doRedo();
       } else if (e.key === 'Escape' && !document.querySelector('dialog[open]')) {
+        if (hidingRef.current) setHiding(false);
         setActiveId(null);
         setInfoKey(null);
         setSelectedCell(null);
@@ -387,7 +437,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
       window.removeEventListener('keydown', onKey);
       document.removeEventListener('gesturestart', noPinch);
     };
-  }, [doUndo, doRedo, printOpen]);
+  }, [doUndo, doRedo, printOpen, setHiding]);
 
   const activeFabric = activeId ? fabricsById.get(activeId) : undefined;
   const infoPiece = infoKey ? pieces.find((p) => p.key === infoKey) : undefined;
@@ -522,13 +572,15 @@ export function Workspace({ project }: { project: ProjectDef }) {
 
   const tray = (
     <FabricTray
-      fabrics={collection.fabrics}
+      fabrics={visibleFabrics(collection.fabrics, excludedIds, hiding)}
       usage={usage}
       activeId={trayRole === 'fill' ? null : activeId}
       layout={wide ? 'grid' : 'strip'}
       countNoun={trayRole === 'fill' ? 'slot' : 'piece'}
+      excluded={excludedIds}
+      hideMode={hiding}
       onToggle={onTrayTap}
-      dragProps={trayRole === 'fill' ? NO_DRAG : dragProps}
+      dragProps={trayDragProps}
       takeClickSuppression={takeClickSuppression}
     />
   );
@@ -536,13 +588,17 @@ export function Workspace({ project }: { project: ProjectDef }) {
   const lineup = (
     <Lineup
       pattern={pattern}
-      fabrics={collection.fabrics}
+      fabrics={usable.fabrics}
       lineup={design.lineup}
       blockCount={design.cells.length}
-      onSetSlot={(slot, id) => update((d) => setLineupSlot(d, slot, id))}
+      onSetSlot={(slot, id) => {
+        // The picker lists only fabrics that are not hidden. Refuse a hidden one anyway.
+        if (id !== null && excludedIds.has(id)) return;
+        update((d) => setLineupSlot(d, slot, id));
+      }}
       onSwap={(a, b) => update((d) => swapLineupSlots(d, a, b))}
       onShuffle={shuffle}
-      onFillRest={() => checkpoint(REASONS.fillRest, (d) => fillEmptySlots(pattern, collection, d))}
+      onFillRest={() => checkpoint(REASONS.fillRest, (d) => fillEmptySlots(pattern, usable, d))}
       selected={lineupSlot}
       onSelect={setLineupSlotPick}
       showShuffle={!guide.active}
@@ -576,11 +632,12 @@ export function Workspace({ project }: { project: ProjectDef }) {
       onHelp={() => setSheet('help')}
       onExplainFatQuarter={() => setSheet('fat-quarter')}
       onShuffle={shuffle}
+      excludedCount={excludedIds.size}
     />
   ) : null;
   const showTray = trayRole !== 'hidden';
 
-  // Save and export actions: the Save & export menu on wide screens, a group in the three dots menu on phones.
+  // Save & export actions: the Save & export menu on wide screens, a group in the three dots menu on phones.
   const saveItems: MenuAction[] = [
     {
       key: 'save',
@@ -799,7 +856,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
           {!wide && (
             <>
               <li className="action-group" role="presentation">
-                <h3 className="action-group-title">Save and export</h3>
+                <h3 className="action-group-title">Save &amp; export</h3>
               </li>
               {saveItems.map((item) => (
                 <li key={item.key} className={item.dividerBefore ? 'action-divider' : undefined}>
@@ -964,7 +1021,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
               <Icon name="trash" />
               <span>
                 <strong>Clear all data</strong>
-                <span>{data.canClear ? 'Erase every quilt and version and start fresh.' : 'Nothing to erase.'}</span>
+                <span>{data.canClear ? 'Erase every quilt and version on this device.' : 'Nothing to erase.'}</span>
               </span>
             </button>
           </li>

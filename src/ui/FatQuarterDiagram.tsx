@@ -134,7 +134,7 @@ export function FatQuarterExplainer({ pattern }: { pattern: PatternDef }) {
         </li>
         <li>
           A block is {n} pieces sewn together, one for each letter. After the shuffle, each piece in a block comes from
-          a different fat quarter.
+          a different fat quarter, as long as the quilt has at least {n} fat quarters.
         </li>
         <li>
           The numbers in the stack count fat quarters. The letters on the quilt name the places inside a block. A quilt

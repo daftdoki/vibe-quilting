@@ -21,7 +21,7 @@ export function VersionsList({ project, sizeName, versions, onSave, onRestored }
   return (
     <div className="versions">
       <p className="versions-note">
-        Versions belong to the {sizeName.toLowerCase()} size and are stored on this device. Save quilt file and Export data, in the three dots menu, take them along.
+        Versions belong to the {sizeName.toLowerCase()} size and are stored on this device. Save quilt file takes them along, and Export data takes the versions for every size.
       </p>
       <div className="versions-save">
         <button type="button" className="btn btn-primary" onClick={onSave} disabled={!versions.canSave}>

@@ -150,8 +150,12 @@ export function fillEmptySlots(
   const order = interleaveByDesign(collection);
   if (order.length === 0) return design;
   const lineup = [...design.lineup];
+  const allEmpty = lineup.every((id) => id === null);
   const filledHere = fillNullSlots(lineup, order, designsOf(collection));
-  return { ...design, lineup: repairLineup(lineup, filledHere) };
+  const repaired = repairLineup(lineup, filledHere);
+  // From an empty stack, a tight fabric count can beat the greedy fill. Picks she made stay, best effort.
+  const runs = allEmpty && conflictCost(repaired) > 0 ? runLineup(repaired.length, order) : null;
+  return { ...design, lineup: runs ?? repaired };
 }
 
 /**
@@ -177,7 +181,38 @@ export function randomLineup(
   const size = getSize(pattern, design.sizeId);
   const lineup = new Array<string | null>(pattern.lineupLength(size)).fill(null);
   const filled = fillNullSlots(lineup, order, designsOf(collection));
-  return { ...design, lineup: repairLineup(lineup, filled) };
+  const repaired = repairLineup(lineup, filled);
+  // A tight fabric count can beat the greedy fill. Runs of distinct fabrics still avoid repeats then.
+  const runs = conflictCost(repaired) > 0 ? runLineup(repaired.length, order) : null;
+  return { ...design, lineup: runs ?? repaired };
+}
+
+/** Split m into r parts that differ by at most one. */
+function evenSplit(m: number, r: number): number[] {
+  const base = Math.floor(m / r);
+  return Array.from({ length: r }, (_, i) => base + (i < m % r ? 1 : 0));
+}
+
+/**
+ * A repeat-free stack of n slots from `order`, built as runs of distinct
+ * fabrics, each run 9 to k long and taken from the start of `order`. Each
+ * fabric then sits at least one whole run from its next copy, so no block gets
+ * it twice. When it can, the first run uses every fabric. Null when no such
+ * stack exists, which is when no r has 9r <= n <= kr.
+ */
+function runLineup(n: number, order: readonly string[]): string[] | null {
+  const k = order.length;
+  let lengths: number[] | null = null;
+  for (let r = 1; MIN_REPEAT_GAP * r <= n; r++) {
+    if (n > k * r) continue;
+    const rest = n - k;
+    if (r === 1 ? n === k : rest >= MIN_REPEAT_GAP * (r - 1) && rest <= k * (r - 1)) {
+      lengths = r === 1 ? [k] : [k, ...evenSplit(rest, r - 1)];
+      break;
+    }
+    lengths ??= evenSplit(n, r);
+  }
+  return lengths ? lengths.flatMap((len) => order.slice(0, len)) : null;
 }
 
 /** Count of slot pairs holding the same fabric closer than the minimum gap. Empty slots never count. */
@@ -456,6 +491,42 @@ export function slotUsage(design: Design): Map<string, number> {
     if (id !== null) usage.set(id, (usage.get(id) ?? 0) + 1);
   }
   return usage;
+}
+
+/**
+ * Take one fabric off a design: every stack slot holding it becomes empty and
+ * every hand-placed piece using it goes back to the shuffle. Returns the same
+ * object when the fabric is not used.
+ */
+export function removeFabric(design: Design, fabricId: string): Design {
+  const inLineup = design.lineup.includes(fabricId);
+  const keys = Object.keys(design.overrides).filter((k) => design.overrides[k] === fabricId);
+  if (!inLineup && keys.length === 0) return design;
+  const overrides = { ...design.overrides };
+  for (const k of keys) delete overrides[k];
+  return {
+    ...design,
+    lineup: inLineup ? design.lineup.map((id) => (id === fabricId ? null : id)) : design.lineup,
+    overrides,
+  };
+}
+
+/** A view of the collection without the hidden fabrics, for the functions that pick fabrics. */
+export function usableCollection(collection: FabricCollection, excluded: ReadonlySet<string>): FabricCollection {
+  if (excluded.size === 0) return collection;
+  return { ...collection, fabrics: collection.fabrics.filter((f) => !excluded.has(f.id)) };
+}
+
+/**
+ * The fabrics the list shows. Hidden fabrics are dropped, except in the hide
+ * mode, where every fabric shows so she can hide one or bring it back.
+ */
+export function visibleFabrics<T extends { id: string }>(
+  fabrics: readonly T[],
+  hidden: ReadonlySet<string>,
+  hiding: boolean,
+): readonly T[] {
+  return hiding || hidden.size === 0 ? fabrics : fabrics.filter((f) => !hidden.has(f.id));
 }
 
 /** True when the design has no fabric anywhere: every slot empty and no overrides. */

@@ -3,9 +3,13 @@ import { stacks } from '../patterns/stacks';
 import { createDesign, createEmptyDesign, setLineupSlot, setOverride } from './design';
 import {
   loadDesign,
+  loadExcluded,
   loadGuide,
   loadLastSize,
+  parseDataKey,
+  parseExcluded,
   saveDesign,
+  saveExcluded,
   saveGuide,
   saveLastSize,
 } from './storage';
@@ -104,5 +108,35 @@ describe('guide progress', () => {
       data.set(key, bad);
       expect(loadGuide('p', 'throw'), bad).toBeNull();
     }
+  });
+});
+
+describe('hidden fabrics', () => {
+  it('round trips and keeps only known ids, once each', () => {
+    saveExcluded('p', ['d0-c1', 'd2-c2']);
+    expect(loadExcluded('p', collection)).toEqual(['d0-c1', 'd2-c2']);
+    expect(loadExcluded('other', collection)).toEqual([]);
+  });
+
+  it('drops unknown ids and bad entries, and survives bad JSON', () => {
+    const data = stubStorage();
+    data.set('vq:v1:excluded:p', JSON.stringify(['d0-c1', 'gone', 3, null, 'd0-c1']));
+    expect(loadExcluded('p', collection)).toEqual(['d0-c1']);
+    data.set('vq:v1:excluded:p', '{not json');
+    expect(loadExcluded('p', collection)).toEqual([]);
+    data.set('vq:v1:excluded:p', JSON.stringify({ a: 1 }));
+    expect(loadExcluded('p', collection)).toEqual([]);
+  });
+
+  it('resolves old ids through the collection aliases', () => {
+    const data = stubStorage();
+    data.set('vq:v1:excluded:p', JSON.stringify(['old-id', 'd1-c0']));
+    const aliased = { ...collection, aliases: { 'old-id': 'd1-c0', toString: 'x' } };
+    expect(loadExcluded('p', aliased)).toEqual(['d1-c0']);
+    expect(parseExcluded(['toString'], aliased)).toEqual([]);
+  });
+
+  it('parses the key', () => {
+    expect(parseDataKey('vq:v1:excluded:p')).toEqual({ kind: 'excluded', projectId: 'p', sizeId: null });
   });
 });

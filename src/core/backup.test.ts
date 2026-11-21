@@ -20,7 +20,14 @@ import { createDesign, createEmptyDesign, setLineupSlot } from './design';
 import v1 from './fixtures/backup-v1.json';
 import v2 from './fixtures/backup-v2.json';
 import quiltV2 from './fixtures/quilt-v2.json';
-import { readDesignFrom, readGuideFrom, readHintSeenFrom, readLastSizeFrom, readVersionsFrom } from './storage';
+import {
+  readDesignFrom,
+  readExcludedFrom,
+  readGuideFrom,
+  readHintSeenFrom,
+  readLastSizeFrom,
+  readVersionsFrom,
+} from './storage';
 import { makeCollection } from './test-fixtures';
 import type { DesignVersion, ProjectDef } from './types';
 
@@ -566,5 +573,58 @@ describe('quilt files', () => {
     expect(x.design).toEqual(live);
     expect(x.versions.map((v) => v.id).sort()).toEqual(['v1', 'v2']);
     expect(seen(dest).sizes.find((z) => z.id === 'crib')?.design).toBeNull();
+  });
+});
+
+describe('hidden fabrics', () => {
+  const withList = () => {
+    const s = filled();
+    s.setItem('vq:v1:excluded:p', JSON.stringify(['d1-c1', 'd3-c0']));
+    return s;
+  };
+
+  it('round trips through a full export', () => {
+    const b = buildBackup(withList(), NOW, ctx);
+    expect(b.projects.p?.excludedFabrics).toEqual(['d1-c1', 'd3-c0']);
+    const { dest } = applyText(serializeBackup(b));
+    expect(readExcludedFrom(dest, 'p', collection)).toEqual(['d1-c1', 'd3-c0']);
+  });
+
+  it('a project with only a hidden list is still exported', () => {
+    const s = new FakeStorage();
+    s.setItem('vq:v1:excluded:p', JSON.stringify(['d0-c0']));
+    expect(buildBackup(s, NOW, ctx).projects.p?.excludedFabrics).toEqual(['d0-c0']);
+  });
+
+  it('files without the field still import, with nothing hidden', () => {
+    const { dest } = applyText(JSON.stringify(v2));
+    expect(readExcludedFrom(dest, 'p', collection)).toBeNull();
+  });
+
+  it('ignores a list of the wrong type and drops unknown ids', () => {
+    const b = buildBackup(filled(), NOW, ctx);
+    const bad = { ...b, projects: { p: { ...b.projects.p!, excludedFabrics: 'd0-c0' } } };
+    expect(ok(JSON.stringify(bad)).file.projects[0]?.excludedFabrics).toEqual([]);
+    const mixed = { ...b, projects: { p: { ...b.projects.p!, excludedFabrics: ['nope', 'd0-c1', 7, 'd0-c1'] } } };
+    const r = ok(JSON.stringify(mixed));
+    expect(r.file.projects[0]?.excludedFabrics).toEqual(['d0-c1']);
+    expect(r.summary.notes.missingFabrics).toBe(0);
+  });
+
+  it('a quilt file neither carries nor changes the list', () => {
+    const src = withList();
+    const q = buildQuiltBackup(src, NOW, ctx, 'p', 'throw');
+    expect(q.projects.p?.excludedFabrics).toBeUndefined();
+    const r = ok(serializeBackup(q));
+    expect(r.file.projects[0]?.excludedFabrics).toBeUndefined();
+    const dest = withList();
+    expect(applyQuiltBackup(dest, r.file, { now: 1, versionId: 'x' })).toEqual({ ok: true });
+    expect(readExcludedFrom(dest, 'p', collection)).toEqual(['d1-c1', 'd3-c0']);
+  });
+
+  it('clearAllData removes it', () => {
+    const s = withList();
+    clearAllData(s);
+    expect(s.getItem('vq:v1:excluded:p')).toBeNull();
   });
 });

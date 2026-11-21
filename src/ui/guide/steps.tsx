@@ -59,6 +59,7 @@ export function FabricsStep({
   design,
   fabricsById,
   fabricCount,
+  excludedCount,
   cutLine,
   repeatBlocks,
   onExplain,
@@ -67,6 +68,8 @@ export function FabricsStep({
   design: Design;
   fabricsById: ReadonlyMap<string, FabricDef>;
   fabricCount: number;
+  /** Fabrics she hid. */
+  excludedCount: number;
   /** Blocks where her picks put one fabric twice, or null when that cannot be avoided. */
   repeatBlocks: number | null;
   onExplain(): void;
@@ -122,7 +125,14 @@ export function FabricsStep({
         })}
       </ol>
 
-      {guide.offerFill ? (
+      {guide.hiding ? (
+        <div className="guide-row">
+          <button type="button" className="btn btn-small btn-primary" onClick={() => guide.setHiding(false)}>
+            <Icon name="check" size={18} />
+            Done
+          </button>
+        </div>
+      ) : guide.offerFill ? (
         <div className="guide-choice" role="group" aria-label="Empty fat quarters">
           <p>
             {guide.emptySlots} {guide.emptySlots === 1 ? 'fat quarter is' : 'fat quarters are'} still empty.
@@ -159,6 +169,10 @@ export function FabricsStep({
               Clear picks
             </button>
           )}
+          <button type="button" className="btn btn-small btn-ghost" onClick={() => guide.setHiding(true)}>
+            <Icon name="ban" size={18} />
+            Hide a fabric
+          </button>
           {guide.slotPicked && targetFilled && target !== null && (
             <button
               type="button"
@@ -188,9 +202,20 @@ export function FabricsStep({
         </button>
       </div>
 
-      {n > fabricCount && (
+      {!guide.hiding && excludedCount > 0 && (
+        <p className="guide-note guide-hidden-note">
+          {excludedCount === 1 ? '1 fabric is hidden.' : `${excludedCount} fabrics are hidden.`}{' '}
+          <button type="button" className="btn btn-small btn-text" onClick={() => guide.setHiding(true)}>
+            {excludedCount === 1 ? 'Show it' : 'Show them'}
+          </button>
+        </p>
+      )}
+
+      {n > fabricCount - excludedCount && (
         <p className="guide-note">
-          This size has {n} fat quarters and the collection has {fabricCount} fabrics, so some fabrics will repeat.
+          {excludedCount > 0
+            ? `This size has ${n} fat quarters and ${fabricCount - excludedCount} ${fabricCount - excludedCount === 1 ? 'fabric is' : 'fabrics are'} in use, so some fabrics will repeat.`
+            : `This size has ${n} fat quarters and the collection has ${fabricCount} fabrics, so some fabrics will repeat.`}
         </p>
       )}
     </>
@@ -284,7 +309,8 @@ export function TouchupsStep({ guide }: { guide: Guide }) {
   const last = guide.block >= guide.blockCount - 1;
   return (
     <div className="guide-row guide-nav-row">
-      <button type="button" className="btn btn-small btn-ghost" onClick={guide.back}>
+      <button type="button" className="btn btn-small guide-back" onClick={guide.back}>
+        <Icon name="arrowLeft" size={18} />
         Back
       </button>
       <button
@@ -337,7 +363,7 @@ export function DoneStep({
     : [
         'Fat quarters, below the quilt, opens the stack and Shuffle.',
         'Blocks, next to it, moves and turns blocks.',
-        'The three dots menu has Save quilt file, Open a quilt file, Export PNG and Print build sheet under Save and export, and the resets.',
+        'The three dots menu has Save quilt file, Open a quilt file, Export PNG and Print build sheet under Save & export, the resets, and your data.',
         'Save this as a version from the three dots menu, then keep trying other layouts.',
       ];
   return (
@@ -360,7 +386,7 @@ export function DoneStep({
         </button>
       </div>
       <div className="guide-tip">
-        <span className="guide-tip-label">Where things are</span>
+        <span className="guide-tip-label">Where things are once the guide closes</span>
         <ul className="guide-places">
           {places.map((p) => (
             <li key={p}>{p}</li>

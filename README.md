@@ -1,6 +1,6 @@
 # Vibe Quilting
 
-Mock up a quilt on your phone. Pick a pattern and a fabric collection, then drag fabrics onto the pieces. Prints draw at their real size, so the mockup shows how the sewn quilt will look.
+Mock up a quilt on your phone. A guided setup picks a size and fills a stack of fat quarters, and you can tap or drag fabrics onto single pieces after that. Prints draw at their real size, so the mockup shows how the sewn quilt will look. The app saves versions, exports a picture, saves and opens quilt files, and prints a black and white build sheet.
 
 The first project is the Stacks pattern with the Happy Place fat quarter bundle.
 
@@ -20,24 +20,32 @@ Open http://localhost:5173. The dev server also listens on your local network, s
 npm test
 ```
 
+`npm test` and `npm run build` run the dependency age check first (see below), which looks up publish dates on the npm registry, so they need a network connection the first time.
+
 ## How the repo is organized
 
 A project pairs one pattern with one fabric collection. Patterns and collections are data, and the core and UI code work with any of them.
 
 | Path | What lives there |
 | --- | --- |
-| `src/core/` | Shared types, design state, geometry, storage. No DOM code. |
+| `src/core/` | Shared types, design state, geometry, storage, versions, the data file format and the build sheet data. No DOM code. |
+| `src/core/fixtures/` | Real data files of each format, kept so old files keep importing. |
 | `src/patterns/<id>/` | One pattern: block pieces as polygons in finished inches, the size list, and the pattern's fabric shuffle. |
 | `src/fabrics/<id>/` | One fabric collection manifest. Generated, do not edit by hand. |
 | `src/projects/` | Pattern and collection pairings, and the project registry. |
 | `src/ui/` | The React app. |
+| `src/ui/guide/` | The guided setup card and its steps. |
+| `src/ui/versions/` | The saved versions list. |
+| `src/ui/data/` | Export data, Import data, Save quilt file, opening a quilt file and Clear all data. |
+| `src/ui/print/` | The printable build sheet and its preview. |
 | `assets-src/fabrics/<id>/` | Original swatch images, before cropping. |
 | `public/fabrics/<id>/` | Cropped swatches and thumbnails that the app serves. |
 | `scripts/prep-fabrics.mjs` | Crops swatch images and writes the collection manifest. |
+| `scripts/check-dep-age.mjs` | Fails when a locked package is under 14 days old. See "Dependency age rule". |
 
 ## Data file format
 
-Export data writes one JSON file with every quilt, saved version and guide position. It does not depend on how the app stores things in `localStorage`. Code is in `src/core/backup.ts`, and the UI is in `src/ui/data/`.
+Export data writes one JSON file with every quilt, saved version, guide position and the list of hidden fabrics. Save quilt file writes the same format with `"scope": "quilt"` and one size of one project. The format does not depend on how the app stores things in `localStorage`. Code is in `src/core/backup.ts`, and the UI is in `src/ui/data/`.
 
 ```jsonc
 {
@@ -50,25 +58,26 @@ Export data writes one JSON file with every quilt, saved version and guide posit
   "projects": {
     "<projectId>": {
       "title": "...", "pattern": { "id": "...", "name": "...", "pieceIds": ["A"] },
-      "collection": { "id": "...", "name": "...", "fabrics": { "<fabricId>": { "name": "...", "sku": "..." } } },
-      "lastSizeId": "throw",
+      "collection": { "id": "...", "name": "...", "fabrics": { "<fabricId>": { "name": "...", "sku": "...", "design": "...", "colorway": "..." } } },
+      "lastSizeId": "throw", // not in a quilt file
+      "excludedFabrics": ["<fabricId>"], // optional. Fabrics she hid. Not in a quilt file
       "sizes": { "<sizeId>": { "name": "...", "cols": 4, "rows": 4, "design": {}, "guide": {}, "versions": [] } }
     }
   },
-  "settings": { "hintSeen": true }
+  "settings": { "hintSeen": true } // not in a quilt file
 }
 ```
 
 The names, SKUs and grid sizes describe things so a later app can map old ids to new ones. Readers never need them.
 
-- **Version gate.** A reader refuses a file only when `readableBy` is higher than its own `READER_FORMAT`. A file with a higher `format` but a readable `readableBy` imports, and the parts the reader does not know are skipped and reported.
+- **Version gate.** A reader refuses a file only when `readableBy` is higher than its own `READER_FORMAT`. A file with a higher `format` but a readable `readableBy` imports. Fields the reader does not know are ignored, and quilts and versions it cannot place are skipped and counted on the confirm screen.
 - **Additive changes** (a new field) need no new format number. Readers ignore fields they do not know.
 - **Breaking changes** raise `format`, add one function to the `MIGRATIONS` chain in `backup.ts` (old shape in, next shape out), set `readableBy` honestly, and add a fixture. The chain is the only code that knows old shapes. Format 1 was a raw dump of the `vq:v1:` storage keys, and it still imports.
-- **Tolerant reading.** Unknown fields, projects, sizes and guide steps are ignored. A field with the wrong type drops that one item, never the file. Fatal errors are only: not JSON, not this app's file, too large, `readableBy` too new, and `projects` missing.
+- **Tolerant reading.** Unknown fields, projects, sizes and guide steps are ignored. A field with the wrong type drops that one item, never the file. Fatal errors are only: not JSON, not this app's file, too large, `readableBy` too new, and `projects` missing or a migration that cannot run. A quilt file is also refused when it holds no quilt for a known pattern and size, or more than one quilt.
 - **Repair.** `repairDesign` (`src/core/repair.ts`) fits a design to the current pattern and fabrics, for files and for `localStorage` alike. An unknown fabric becomes an empty slot, bad overrides are dropped, lineups are cut or padded, and blocks that do not fit are reset. Only an unknown size id makes it give up.
 - **Permanent ids and aliases.** Project, size, piece and fabric ids are permanent. If one must change, add the old id to `aliases` (`FabricCollection.aliases`, `PatternDef.aliases.sizes` and `.pieces`, and `projectAliases` in `src/projects/index.ts`). Aliases apply to files, and to fabric and piece ids in stored designs. Keys in `localStorage` still use the old project and size ids, so renaming one of those also needs a storage migration.
-- **Scope.** `scope` says what a file is for. Missing or exactly `"all"` is a full export, and import replaces everything on the device. `"quilt"` is one size of one project (`buildQuiltBackup`), and import opens it with `applyQuiltBackup`: it replaces only that size's design, keeps the old design as an automatic version, merges the versions by id, and leaves everything else alone. A quilt file has no `settings` and no `lastSizeId`. Adding `scope` was additive, so `format` and `readableBy` stayed 2. **Safety rule:** any other `scope` value, from a future app, is read as a quilt-style file and never as a full replace, and `applyBackup` refuses data that is not scope `"all"`. A reader that does not understand a scope cannot wipe the device. Readers built before `scope` existed ignore it and would treat a quilt file as a full one.
-- **Fixtures.** `src/core/fixtures/backup-v*.json` are real files of each format, tested in `src/core/backup.test.ts`. Never edit or delete one. Only add new ones, and every format must keep importing.
+- **Scope.** `scope` says what a file is for. Missing or exactly `"all"` is a full export, and import replaces everything on the device. `"quilt"` is one size of one project (`buildQuiltBackup`), and import opens it with `applyQuiltBackup`: it replaces only that size's design, keeps the old design as an automatic version (by the usual `addVersion` rules, so not when it is empty, equal to the incoming design, or equal to the newest version), merges the versions by id or identical content, makes that size the last one opened, and leaves everything else alone. A quilt file has no `settings`, no `lastSizeId` and no `excludedFabrics`. Adding `scope` was additive, so `format` and `readableBy` stayed 2. **Safety rule:** any other `scope` value, from a future app, is read as a quilt-style file and never as a full replace, and `applyBackup` refuses data that is not scope `"all"`. A reader that does not understand a scope cannot wipe the device. Readers built before `scope` existed ignore it and would treat a quilt file as a full one.
+- **Fixtures.** `src/core/fixtures/backup-v*.json` and `quilt-v*.json` are real files of each format, tested in `src/core/backup.test.ts`. Never edit or delete one. Only add new ones, and every format must keep importing.
 
 ## Dependency age rule
 
@@ -82,7 +91,7 @@ The rule has two enforcement points:
 What this means in practice:
 
 - To add or update a package, run `npm install <name>` as usual. npm picks the newest version that is old enough. If nothing old enough fits, wait.
-- Do not pass `--min-release-age`, `--before` or `--no-package-lock` to get around it, and do not add entries to `min-release-age-exclude`.
+- Do not pass `--min-release-age`, `--before`, `--no-package-lock` or `--registry` to get around it, and do not add entries to `min-release-age-exclude`.
 - A security fix published in the last 14 days is the one case for an exception. The project owner decides, and the exception goes in `.npmrc` as a `min-release-age-exclude[]` line with a comment and a date to remove it.
 - The rule covers everything, not only npm packages. No scripts or styles loaded from a CDN, no `npx` or `curl | sh` of something unpinned, no git or tarball dependencies, and no copied-in third party code newer than 14 days.
 

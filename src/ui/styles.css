@@ -1108,10 +1108,25 @@ ol {
   background: #fff07a;
 }
 
-/* Next before the step is complete. Still pressable. */
-.btn-muted {
-  background: var(--panel-2);
-  color: var(--ink-dim);
+/* Guide navigation. Back is solid white and Next is solid yellow, so the two
+   ways to move between steps stand out from every other button on the card. */
+.guide-back {
+  background: var(--ink);
+  color: var(--ink-dark);
+  font-weight: 700;
+}
+
+.guide-back:hover:not(:disabled) {
+  background: #ffffff;
+}
+
+.guide-back svg,
+.guide-next svg {
+  flex: none;
+}
+
+.guide-next {
+  box-shadow: 0 0 0 0 transparent;
 }
 
 .btn-text {
@@ -1222,7 +1237,7 @@ ol {
 
 .guide-nav {
   justify-content: space-between;
-  margin-top: 2px;
+  margin-top: 0;
 }
 
 .guide-nav .btn:only-child {
@@ -1452,25 +1467,26 @@ ol {
   overscroll-behavior: contain;
 }
 
-.is-narrow .guide-fabrics,
 .is-narrow .guide-touchups {
   max-height: 50dvh;
 }
 
-/* Back and Next stay in view while the rest of the card scrolls. */
-.is-narrow .guide {
-  padding-bottom: 0;
+/* Pick your fabrics is the fullest step. It gets enough height to show every
+   action button without scrolling, and the notes sit below them. */
+.is-narrow .guide-fabrics {
+  max-height: 57dvh;
 }
 
+/* Back and Next sit under the step counter and stay in view while the card scrolls. */
 .is-narrow .guide-nav,
 .is-narrow .guide-nav-row {
   position: sticky;
-  bottom: 0;
+  top: 0;
   z-index: 1;
   margin: 0 -14px;
-  padding: 8px 14px 10px;
+  padding: 6px 14px 8px;
   background: var(--panel);
-  box-shadow: 0 -1px 0 var(--line);
+  box-shadow: 0 1px 0 var(--line);
 }
 
 .is-wide .guide {
@@ -2246,4 +2262,42 @@ html.is-dragging * {
   padding: 14px 12px;
   border-radius: 16px;
   background: rgba(255, 244, 251, 0.04);
+}
+
+/* Hidden fabrics, shown only in the hide mode: dimmed, grey and struck through, with no count. */
+.swatch.is-excluded .swatch-img img {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+.swatch-out {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.swatch-out svg {
+  fill: rgba(29, 11, 51, 0.55);
+  stroke: var(--ink);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.swatch-name span.swatch-out-label {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.guide-text p + p {
+  margin-top: 6px;
+}
+
+/* "2 fabrics are hidden. Show them" */
+.guide-hidden-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 4px;
 }

@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { createEmptyDesign, fillEmptySlots, isEmptyDesign, randomLineup, setLineupSlot } from '../../core/design';
 import { GUIDE_STEPS, loadGuide, saveGuide, type GuideStepId } from '../../core/storage';
-import type { ProjectDef } from '../../core/types';
+import type { FabricCollection, ProjectDef } from '../../core/types';
 import type { DesignState } from '../useDesign';
 import { REASONS, type CheckpointUpdate } from '../versions/useVersions';
 
@@ -53,6 +53,8 @@ interface State {
   pickedSlot: number | null;
   /** She pressed Next with slots still empty. */
   offerFill: boolean;
+  /** Hide mode in the fat quarters step: a tray tap hides a fabric or brings it back. */
+  hiding: boolean;
 }
 
 export interface Guide {
@@ -70,6 +72,8 @@ export interface Guide {
   /** She picked a size in the size step that already has a design with something in it. */
   sizeConflict: boolean;
   offerFill: boolean;
+  /** True while tray taps hide fabrics instead of filling the stack. */
+  hiding: boolean;
 
   pickSize(sizeId: string): void;
   startSizeEmpty(): void;
@@ -84,6 +88,8 @@ export interface Guide {
   /** Fill the empty slots and go to the next step. */
   fillRestAndNext(): void;
   dismissFillOffer(): void;
+  /** Turn the hide mode on or off. */
+  setHiding(on: boolean): void;
   next(): void;
   back(): void;
   setBlock(cell: number): void;
@@ -99,8 +105,18 @@ export interface Guide {
   resume(): void;
 }
 
-export function useGuide(project: ProjectDef, ds: DesignState, checkpointUpdate: CheckpointUpdate): Guide {
-  const { pattern, collection } = project;
+/**
+ * `usable` is the collection without the fabrics she hid. Fill the rest
+ * and Pick at random only choose from it.
+ */
+export function useGuide(
+  project: ProjectDef,
+  ds: DesignState,
+  checkpointUpdate: CheckpointUpdate,
+  usable: FabricCollection,
+): Guide {
+  const { pattern } = project;
+  const collection = usable;
   const { design, update, wasCreated } = ds;
 
   const progressFor = useCallback(
@@ -120,6 +136,7 @@ export function useGuide(project: ProjectDef, ds: DesignState, checkpointUpdate:
     conflictSize: null,
     pickedSlot: null,
     offerFill: false,
+    hiding: false,
   }));
 
   // A size switch replaces the state during render, so no frame shows the old size's step.
@@ -133,6 +150,7 @@ export function useGuide(project: ProjectDef, ds: DesignState, checkpointUpdate:
       conflictSize: carried ? state.conflictSize : null,
       pickedSlot: null,
       offerFill: false,
+      hiding: false,
     };
     setState(current);
   }
@@ -160,14 +178,28 @@ export function useGuide(project: ProjectDef, ds: DesignState, checkpointUpdate:
   const goTo = useCallback((s: GuideStepId, blockIndex = 0) => {
     setState((st) =>
       st.progress
-        ? { ...st, progress: { step: s, block: blockIndex }, pickedSlot: null, offerFill: false, conflictSize: null }
+        ? {
+            ...st,
+            progress: { step: s, block: blockIndex },
+            pickedSlot: null,
+            offerFill: false,
+            conflictSize: null,
+            hiding: false,
+          }
         : st,
     );
   }, []);
 
   const exit = useCallback(() => {
     saveGuide(project.id, ds.sizeId, 'done');
-    setState((st) => ({ ...st, progress: null, pickedSlot: null, offerFill: false, conflictSize: null }));
+    setState((st) => ({
+      ...st,
+      progress: null,
+      pickedSlot: null,
+      offerFill: false,
+      conflictSize: null,
+      hiding: false,
+    }));
   }, [project.id, ds.sizeId]);
 
   const pickSize = useCallback(
@@ -185,7 +217,7 @@ export function useGuide(project: ProjectDef, ds: DesignState, checkpointUpdate:
   const next = useCallback(() => {
     if (!step) return;
     if (step === 'fabrics' && emptySlots > 0) {
-      setState((st) => ({ ...st, offerFill: true }));
+      setState((st) => ({ ...st, offerFill: true, hiding: false }));
       return;
     }
     if (step === 'touchups') {
@@ -197,6 +229,11 @@ export function useGuide(project: ProjectDef, ds: DesignState, checkpointUpdate:
     const to = GUIDE_STEPS[i + 1];
     if (to) goTo(to);
   }, [step, emptySlots, block, blockCount, goTo]);
+
+  const setHiding = useCallback(
+    (on: boolean) => setState((st) => ({ ...st, hiding: on, pickedSlot: null, offerFill: false })),
+    [],
+  );
 
   const back = useCallback(() => {
     if (!step) return;
@@ -218,6 +255,7 @@ export function useGuide(project: ProjectDef, ds: DesignState, checkpointUpdate:
     emptySlots,
     sizeConflict: step === 'size' && current.conflictSize === ds.sizeId && !isEmptyDesign(design),
     offerFill: step === 'fabrics' && current.offerFill && emptySlots > 0,
+    hiding: step === 'fabrics' && current.hiding,
 
     pickSize,
     startSizeEmpty: () => {
@@ -253,6 +291,7 @@ export function useGuide(project: ProjectDef, ds: DesignState, checkpointUpdate:
       goTo('shuffle');
     },
     dismissFillOffer: () => setState((st) => ({ ...st, offerFill: false })),
+    setHiding,
     next,
     back,
     setBlock: (cell) => goTo('touchups', Math.max(0, Math.min(blockCount - 1, cell))),
@@ -265,6 +304,7 @@ export function useGuide(project: ProjectDef, ds: DesignState, checkpointUpdate:
         pickedSlot: null,
         offerFill: false,
         conflictSize: null,
+        hiding: false,
       })),
     resume: () =>
       setState((st) => ({
@@ -273,6 +313,7 @@ export function useGuide(project: ProjectDef, ds: DesignState, checkpointUpdate:
         pickedSlot: null,
         offerFill: false,
         conflictSize: null,
+        hiding: false,
       })),
   };
 }

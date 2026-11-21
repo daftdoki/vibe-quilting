@@ -107,7 +107,7 @@ export function quiltHoldsText(sizeName: string, versions: number, exportedAt: s
 /** What opening a quilt file does. `deviceHasQuilt` says whether that size has a quilt here now. */
 export function quiltOpensText(sizeName: string, deviceHasQuilt: boolean): string {
   return deviceHasQuilt
-    ? `It replaces the ${sizeName} quilt on this device. The quilt you have there now is kept as an automatic version, and the file's versions are added to yours. Your other sizes are not touched.`
+    ? `It replaces the ${sizeName} quilt on this device. If the quilt you have there now is different, it is kept as an automatic version. The file's versions are added to yours. Your other sizes are not touched.`
     : `The ${sizeName} size is empty on this device, so nothing is replaced. The file's versions are added to yours. Your other sizes are not touched.`;
 }
 

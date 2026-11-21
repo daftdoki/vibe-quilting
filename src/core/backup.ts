@@ -30,17 +30,20 @@ import { repairDesign, resolveAlias } from './repair';
 import {
   isDesignShape,
   parseDataKey,
+  parseExcluded,
   parseGuideProgress,
   parseVersion,
   quiltKeys,
   removeGuideFrom,
   readDesignFrom,
+  readExcludedFrom,
   readGuideFrom,
   readHintSeenFrom,
   readLastSizeFrom,
   readVersionsFrom,
   STORAGE_PREFIX,
   writeDesignTo,
+  writeExcludedTo,
   writeGuideTo,
   writeHintSeenTo,
   writeLastSizeTo,
@@ -96,6 +99,8 @@ export interface BackupProject {
     fabrics: Record<string, { name: string; sku: string; design: string; colorway: string }>;
   };
   lastSizeId?: string;
+  /** Fabric ids she hid. Not written in a quilt file. */
+  excludedFabrics?: string[];
   sizes: Record<string, BackupSize>;
 }
 
@@ -119,6 +124,8 @@ export interface ImportData {
 export interface ImportProject {
   projectId: string;
   lastSizeId: string | null;
+  /** Hidden fabric ids this app knows. Missing in a quilt file, which never changes them. */
+  excludedFabrics?: string[];
   sizes: ImportSize[];
 }
 
@@ -216,8 +223,12 @@ function collect(storage: KeyValueStorage): { projects: Record<string, BackupPro
       if (design || guide || versions.length > 0) sizes[sizeId] = { design, guide, versions };
     }
     const lastSizeId = readLastSizeFrom(storage, projectId);
-    if (Object.keys(sizes).length === 0 && lastSizeId === null) continue;
-    projects[projectId] = lastSizeId === null ? { sizes } : { lastSizeId, sizes };
+    const excluded = readExcludedFrom(storage, projectId);
+    const hasExcluded = excluded !== null && excluded.length > 0;
+    if (Object.keys(sizes).length === 0 && lastSizeId === null && !hasExcluded) continue;
+    const project: BackupProject = lastSizeId === null ? { sizes } : { lastSizeId, sizes };
+    if (hasExcluded) project.excludedFabrics = excluded;
+    projects[projectId] = project;
   }
   return { projects, settings: readHintSeenFrom(storage) ? { hintSeen: true } : {} };
 }
@@ -446,6 +457,8 @@ function readFile(file: Raw, ctx: BackupContext): { data: ImportData; notes: Imp
     projects.set(def.id, {
       projectId: def.id,
       lastSizeId: last !== null && def.pattern.sizes.some((x) => x.id === last) ? last : null,
+      // A list of the wrong type is ignored. Unknown ids are dropped.
+      excludedFabrics: parseExcluded(p.excludedFabrics, def.collection) ?? [],
       sizes: [...sizes.values()],
     });
   }
@@ -525,6 +538,7 @@ export function applyBackup(storage: KeyValueStorage, data: ImportData): ApplyRe
     for (const k of appKeys(storage)) storage.removeItem(k);
     for (const p of data.projects) {
       if (p.lastSizeId !== null) writeLastSizeTo(storage, p.projectId, p.lastSizeId);
+      if (p.excludedFabrics && p.excludedFabrics.length > 0) writeExcludedTo(storage, p.projectId, p.excludedFabrics);
       for (const s of p.sizes) {
         if (s.design) writeDesignTo(storage, p.projectId, s.design);
         if (s.guide) writeGuideTo(storage, p.projectId, s.sizeId, s.guide);

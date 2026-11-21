@@ -3,6 +3,7 @@
  * of the side panel in the wide layout.
  */
 import { useId, type ReactNode } from 'react';
+import { Icon } from '../Icon';
 import { repeatedFabricBlocks } from '../../core/design';
 import type { Design, FabricDef, PatternDef, ProjectDef, ResolvedPiece } from '../../core/types';
 import type { GuideStepId } from '../../core/storage';
@@ -34,6 +35,8 @@ interface Props {
   /** Opens the picture of how a fat quarter is cut and shuffled. */
   onExplainFatQuarter(): void;
   onShuffle(): void;
+  /** Fabrics she hid, for the fat quarters step. */
+  excludedCount: number;
 }
 
 const TITLES: Record<GuideStepId, string> = {
@@ -52,6 +55,7 @@ function instruction(step: GuideStepId, p: Props): string {
     case 'size':
       return 'Pick a quilt size.';
     case 'fabrics': {
+      if (guide.hiding) return 'Tap a fabric to hide it. Tap a hidden one to bring it back.';
       const where = wide ? 'in the list below' : 'below';
       const t = guide.targetSlot;
       if (t === null) return 'Every fat quarter is picked. Tap one to change it.';
@@ -59,7 +63,7 @@ function instruction(step: GuideStepId, p: Props): string {
       return `Pick fat quarter ${t + 1} of ${n}. Tap a fabric ${where}.`;
     }
     case 'shuffle':
-      return 'Shuffle as often as you like. Each fat quarter lands in a different spot in every block.';
+      return 'Shuffle as often as you like. Each shuffle changes the order of the fat quarters, and so which fabric lands where in every block.';
     case 'blocks':
       return 'Tap a block, then another to swap them. Tap the same block twice to turn it.';
     case 'touchups': {
@@ -78,17 +82,16 @@ function tip(step: GuideStepId, wide: boolean): string | null {
     case 'size':
       return 'Each size keeps its own design, and you can change size later by tapping the title at the top.';
     case 'fabrics':
-      return wide
-        ? 'Pinch or use the scroll wheel to zoom, drag to move the quilt, and use the corner button to fit it back on screen.'
-        : 'Pinch to zoom, drag to move the quilt, and tap the corner button to fit it back on screen.';
+      // This step is the fullest on a phone, so its zoom tip moved to the blocks step.
+      return null;
     case 'shuffle':
       return wide
         ? 'Undo and Redo at the top work on every change you make, not only a shuffle.'
         : 'The arrows at the top undo and redo every change you make, not only a shuffle.';
     case 'blocks':
       return wide
-        ? 'This works outside the guide too, under Blocks at the top.'
-        : 'This works outside the guide too, under Blocks above the fabrics.';
+        ? 'Pinch or use the scroll wheel to zoom, drag to move the quilt, and use the corner button to fit it back on screen.'
+        : 'Pinch to zoom, drag to move the quilt, and tap the corner button to fit it back on screen.';
     case 'touchups':
       return 'You can also drag a fabric onto a piece, and a tap on a piece with no fabric picked shows what it is and can put the shuffled fabric back.';
     case 'done':
@@ -100,8 +103,11 @@ function tip(step: GuideStepId, wide: boolean): string | null {
  * One line on how a fat quarter is cut, worded from what the pattern does with
  * the target slot. The letters only show when it fills one piece of each.
  */
-function cutLine(pattern: PatternDef, pieces: readonly ResolvedPiece[]): string | null {
+function cutLine(pattern: PatternDef, pieces: readonly ResolvedPiece[], wide: boolean): string | null {
   if (pieces.length === 0) return null;
+  // The phone card is short, so it keeps only the part about the outlines. The
+  // diagram button below it explains how a fat quarter is cut.
+  if (!wide) return 'Yellow outlines show where this fat quarter goes.';
   const defs = pattern.block.pieces;
   const letters = new Set(pieces.map((p) => p.pieceIndex));
   const blocks = new Set(pieces.map((p) => p.blockId));
@@ -137,7 +143,8 @@ export function GuideCard(props: Props) {
           design={design}
           fabricsById={fabricsById}
           fabricCount={project.collection.fabrics.length}
-          cutLine={cutLine(project.pattern, props.slotPieces)}
+          excludedCount={props.excludedCount}
+          cutLine={cutLine(project.pattern, props.slotPieces, wide)}
           repeatBlocks={repeatedFabricBlocks(project.pattern, design.lineup, design.cells.length)}
           onExplain={props.onExplainFatQuarter}
         />
@@ -157,7 +164,8 @@ export function GuideCard(props: Props) {
       body = <BlocksStep pattern={project.pattern} design={design} update={props.checkpointUpdate} />;
       break;
     case 'touchups':
-      body = <TouchupsStep guide={guide} />;
+      // Its buttons are the navigation row, drawn under the step counter below.
+      body = null;
       break;
     case 'done':
       body = (
@@ -178,7 +186,6 @@ export function GuideCard(props: Props) {
 
   // Touch-ups and Done carry their own forward buttons. Touch-ups also carries Back, to save a row on a phone.
   const showNext = step !== 'touchups' && step !== 'done';
-  const nextReady = step !== 'fabrics' || guide.emptySlots === 0;
 
   return (
     <section className={`guide guide-${step}`} aria-labelledby={titleId}>
@@ -194,10 +201,37 @@ export function GuideCard(props: Props) {
         </button>
       </div>
 
+      {/* Back and Next sit under the step counter, where they are seen first. Touch-ups brings its own row. */}
+      {step === 'touchups' ? (
+        <TouchupsStep guide={guide} />
+      ) : (
+        <div className="guide-nav">
+          {step !== 'size' && (
+            <button type="button" className="btn btn-small guide-back" onClick={guide.back}>
+              <Icon name="arrowLeft" size={18} />
+              Back
+            </button>
+          )}
+          {showNext && (
+            <button type="button" className="btn btn-small btn-primary guide-next" onClick={guide.next}>
+              Next
+              <Icon name="arrowRight" size={18} />
+            </button>
+          )}
+        </div>
+      )}
+
       <h2 id={titleId} className="guide-title">
         {TITLES[step]}
       </h2>
       <div className="guide-text" aria-live="polite">
+        {/* In the hide mode the mode's instruction takes the place of this lead, so the card does not grow. */}
+        {step === 'fabrics' && !guide.hiding && (
+          <p>
+            Pick each fabric yourself, let the app pick at random, or do some of each. Hide any fabric you do not want
+            and the app will not pick it.
+          </p>
+        )}
         <p>{instruction(step, props)}</p>
       </div>
 
@@ -212,24 +246,6 @@ export function GuideCard(props: Props) {
         <p className="guide-tip">The full how to use guide is always under the ? button and in the three dots menu.</p>
       )}
 
-      {step !== 'touchups' && (
-        <div className="guide-nav">
-          {step !== 'size' && (
-            <button type="button" className="btn btn-small btn-ghost" onClick={guide.back}>
-              Back
-            </button>
-          )}
-          {showNext && (
-            <button
-              type="button"
-              className={`btn btn-small ${nextReady ? 'btn-primary' : 'btn-muted'}`}
-              onClick={guide.next}
-            >
-              Next
-            </button>
-          )}
-        </div>
-      )}
     </section>
   );
 }

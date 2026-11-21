@@ -1,5 +1,5 @@
 /** localStorage persistence. Every call is safe when storage is missing or throws. */
-import type { Design, DesignVersion } from './types';
+import type { Design, DesignVersion, FabricCollection } from './types';
 
 export const STORAGE_PREFIX = 'vq:v1:';
 const PREFIX = STORAGE_PREFIX;
@@ -17,6 +17,7 @@ const designKey = (projectId: string, sizeId: string) => `${PREFIX}design:${proj
 const sizeKey = (projectId: string) => `${PREFIX}size:${projectId}`;
 const guideKey = (projectId: string, sizeId: string) => `${PREFIX}guide:${projectId}:${sizeId}`;
 const versionsKey = (projectId: string, sizeId: string) => `${PREFIX}versions:${projectId}:${sizeId}`;
+const excludedKey = (projectId: string) => `${PREFIX}excluded:${projectId}`;
 
 /** Steps of the guided setup, in order. */
 export const GUIDE_STEPS = ['size', 'fabrics', 'shuffle', 'blocks', 'touchups', 'done'] as const;
@@ -232,9 +233,9 @@ export function saveVersions(projectId: string, sizeId: string, versions: readon
 
 export type DataKey =
   | { kind: 'design' | 'versions' | 'guide'; projectId: string; sizeId: string }
-  | { kind: 'size'; projectId: string; sizeId: null };
+  | { kind: 'size' | 'excluded'; projectId: string; sizeId: null };
 
-/** Split a key of a design, versions, guide or last size entry into its parts. Null for any other key. */
+/** Split a key of a design, versions, guide, last size or hidden fabrics entry into its parts. Null for any other key. */
 export function parseDataKey(key: string): DataKey | null {
   for (const kind of ['design', 'versions', 'guide'] as const) {
     const head = `${PREFIX}${kind}:`;
@@ -244,8 +245,10 @@ export function parseDataKey(key: string): DataKey | null {
     if (i <= 0 || i === rest.length - 1) return null;
     return { kind, projectId: rest.slice(0, i), sizeId: rest.slice(i + 1) };
   }
-  const head = `${PREFIX}size:`;
-  if (key.startsWith(head) && key.length > head.length) return { kind: 'size', projectId: key.slice(head.length), sizeId: null };
+  for (const kind of ['size', 'excluded'] as const) {
+    const head = `${PREFIX}${kind}:`;
+    if (key.startsWith(head) && key.length > head.length) return { kind, projectId: key.slice(head.length), sizeId: null };
+  }
   return null;
 }
 
@@ -288,4 +291,48 @@ export function writeHintSeenTo(s: Writer): void {
 
 export function saveHintSeen(): void {
   write(HINT_KEY, '1');
+}
+
+/**
+ * Hidden fabrics: fabric ids she does not want picked, one list per project
+ * for every size. Without a collection, any list of strings passes. With one,
+ * old ids go through `collection.aliases`, unknown ids are dropped, and each
+ * id appears once.
+ */
+export function parseExcluded(v: unknown, collection?: FabricCollection): string[] | null {
+  if (!Array.isArray(v)) return null;
+  const ids = v.filter((x): x is string => typeof x === 'string');
+  if (!collection) return [...new Set(ids)];
+  const known = new Set(collection.fabrics.map((f) => f.id));
+  const out = new Set<string>();
+  for (const raw of ids) {
+    const aliases = collection.aliases;
+    const id = aliases && Object.hasOwn(aliases, raw) ? (aliases[raw] ?? raw) : raw;
+    if (known.has(id)) out.add(id);
+  }
+  return [...out];
+}
+
+/** The stored list, checked against `collection` when one is given. Null when there is none or it does not parse. */
+export function readExcludedFrom(s: Reader | null, projectId: string, collection?: FabricCollection): string[] | null {
+  const raw = readFrom(s, excludedKey(projectId));
+  if (raw === null) return null;
+  try {
+    return parseExcluded(JSON.parse(raw), collection);
+  } catch {
+    return null;
+  }
+}
+
+/** Hidden fabric ids for a project, known to `collection`. Empty when none are stored. */
+export function loadExcluded(projectId: string, collection: FabricCollection): string[] {
+  return readExcludedFrom(store(), projectId, collection) ?? [];
+}
+
+export function writeExcludedTo(s: Writer, projectId: string, ids: readonly string[]): void {
+  s.setItem(excludedKey(projectId), JSON.stringify(ids));
+}
+
+export function saveExcluded(projectId: string, ids: readonly string[]): boolean {
+  return write(excludedKey(projectId), JSON.stringify(ids));
 }

@@ -2,12 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { stacks } from '../patterns/stacks';
 import {
   applyBackup,
+  applyQuiltBackup,
   BACKUP_FORMAT,
   backupFileName,
   buildBackup,
+  buildQuiltBackup,
   clearAllData,
   MAX_BACKUP_CHARS,
   parseBackup,
+  quiltFileName,
   serializeBackup,
   summarizeStorage,
   type BackupContext,
@@ -16,6 +19,7 @@ import {
 import { createDesign, createEmptyDesign, setLineupSlot } from './design';
 import v1 from './fixtures/backup-v1.json';
 import v2 from './fixtures/backup-v2.json';
+import quiltV2 from './fixtures/quilt-v2.json';
 import { readDesignFrom, readGuideFrom, readHintSeenFrom, readLastSizeFrom, readVersionsFrom } from './storage';
 import { makeCollection } from './test-fixtures';
 import type { DesignVersion, ProjectDef } from './types';
@@ -386,5 +390,181 @@ describe('backupFileName', () => {
   it('uses the local date', () => {
     expect(backupFileName(new Date(2026, 2, 5, 23, 59))).toBe('vibe-quilting-2026-03-05.json');
     expect(backupFileName(new Date(2026, 11, 25, 0, 1))).toBe('vibe-quilting-2026-12-25.json');
+  });
+});
+
+describe('quilt files', () => {
+  const throwD = createDesign(stacks, collection, 'throw');
+  const opts = { now: 5_000_000_000_000, versionId: 'new-auto' };
+  const quiltOf = (text: string) => {
+    const r = ok(text);
+    expect(r.summary.scope).toBe('quilt');
+    return r;
+  };
+  const apply = (dest: FakeStorage, text: string) => applyQuiltBackup(dest, quiltOf(text).file, opts);
+
+  it('existing fixtures are scope all', () => {
+    expect(ok(JSON.stringify(v1)).summary.scope).toBe('all');
+    expect(ok(JSON.stringify(v2)).summary.scope).toBe('all');
+    expect(ok(JSON.stringify(v2)).file.scope).toBe('all');
+  });
+
+  it('parses the golden quilt fixture', () => {
+    const r = quiltOf(JSON.stringify(quiltV2));
+    expect(r.summary.quilt).toEqual({ projectId: 'p', sizeId: 'throw', sizeName: 'Throw' });
+    expect(r.summary).toMatchObject({ quilts: 1, versions: 2 });
+    expect(r.file.projects).toHaveLength(1);
+    expect(r.file.projects[0]?.sizes).toHaveLength(1);
+  });
+
+  it('applies the golden quilt fixture', () => {
+    const dest = filled();
+    const other = dest.getItem('vq:v1:design:p:crib');
+    expect(apply(dest, JSON.stringify(quiltV2))).toEqual({ ok: true });
+    const x = seen(dest);
+    expect(x.sizes.find((z) => z.id === 'throw')?.design).toEqual(throwD);
+    expect(x.sizes.find((z) => z.id === 'throw')?.versions.map((v) => v.id).sort()).toEqual(['q1', 'q2', 'v1', 'v2']);
+    expect(dest.getItem('vq:v1:design:p:crib')).toBe(other);
+    expect(x.last).toBe('throw');
+  });
+
+  it('a quilt file for a size this app does not have is refused', () => {
+    const t = JSON.stringify({ ...quiltV2, projects: { p: { sizes: { giant: { design: { ...throwD, sizeId: 'giant' }, versions: [] } } } } });
+    expect(parseBackup(t, ctx)).toEqual({ ok: false, reason: 'quilt-unknown' });
+    const t2 = JSON.stringify({ ...quiltV2, projects: { other: { sizes: { throw: { design: throwD, versions: [] } } } } });
+    expect(parseBackup(t2, ctx)).toEqual({ ok: false, reason: 'quilt-unknown' });
+  });
+
+  it('a quilt file with no readable design is refused', () => {
+    const t = JSON.stringify({ ...quiltV2, projects: { p: { sizes: { throw: { design: null, versions: [] } } } } });
+    expect(parseBackup(t, ctx)).toEqual({ ok: false, reason: 'quilt-unreadable' });
+    const t2 = JSON.stringify({ ...quiltV2, projects: { p: { sizes: { throw: { design: { nope: 1 } } } } } });
+    expect(parseBackup(t2, ctx)).toEqual({ ok: false, reason: 'quilt-unreadable' });
+  });
+
+  it('never treats an unknown scope as a full replace', () => {
+    const one = parseBackup(JSON.stringify({ ...quiltV2, scope: 'bundle' }), ctx);
+    expect(one.ok && one.summary.scope).toBe('quilt');
+    const many = parseBackup(JSON.stringify({ ...v2, scope: 'bundle' }), ctx);
+    // The v2 fixture holds two sizes, so it cannot be opened as one quilt.
+    expect(many).toEqual({ ok: false, reason: 'quilt-unreadable' });
+    for (const scope of [null, 5, '', 'ALL']) {
+      const r = parseBackup(JSON.stringify({ ...quiltV2, scope }), ctx);
+      expect(r.ok && r.summary.scope).toBe('quilt');
+    }
+  });
+
+  it('applyBackup refuses quilt data', () => {
+    const dest = filled();
+    const before = new Map(dest.map);
+    expect(applyBackup(dest, quiltOf(JSON.stringify(quiltV2)).file)).toEqual({ ok: false, reason: 'failed' });
+    expect(dest.map).toEqual(before);
+  });
+
+  it('leaves other sizes and settings alone', () => {
+    const dest = filled();
+    const before = new Map(dest.map);
+    expect(apply(dest, JSON.stringify(quiltV2))).toEqual({ ok: true });
+    for (const [k, v] of before) {
+      if (!k.endsWith(':throw') && k !== 'vq:v1:size:p') expect(dest.getItem(k)).toBe(v);
+    }
+    expect(dest.getItem('vq:v1:size:p')).toBe('throw');
+    expect(dest.getItem('vq:v1:hint-seen')).toBe('1');
+    expect(dest.getItem('other-app:thing')).toBe('keep me');
+  });
+
+  it('keeps the current quilt as an automatic version', () => {
+    const dest = filled();
+    const edited = setLineupSlot(throwD, 1, 'd2-c2');
+    dest.setItem('vq:v1:design:p:throw', JSON.stringify(edited));
+    const incoming = JSON.stringify({ ...quiltV2, projects: { p: { sizes: { throw: { design: setLineupSlot(throwD, 0, 'd6-c1'), versions: [] } } } } });
+    expect(apply(dest, incoming)).toEqual({ ok: true });
+    const list = readVersionsFrom(dest, 'p', 'throw');
+    expect(list[0]).toMatchObject({ id: 'new-auto', auto: true, reason: 'Before opening a file', name: 'Before opening a file' });
+    expect(list[0]?.design).toEqual(edited);
+    expect(list).toHaveLength(3);
+    expect(readDesignFrom(dest, 'p', 'throw')?.lineup[0]).toBe('d6-c1');
+  });
+
+  it('adds no automatic version when the device size is empty or holds the same quilt', () => {
+    const empty = new FakeStorage();
+    expect(apply(empty, JSON.stringify(quiltV2))).toEqual({ ok: true });
+    expect(readVersionsFrom(empty, 'p', 'throw').map((v) => v.id)).toEqual(['q2', 'q1']);
+    const same = filled();
+    expect(apply(same, JSON.stringify(quiltV2))).toEqual({ ok: true });
+    expect(readVersionsFrom(same, 'p', 'throw').some((v) => v.id === 'new-auto')).toBe(false);
+  });
+
+  it('merges versions by id without duplicates', () => {
+    const dest = new FakeStorage();
+    apply(dest, JSON.stringify(quiltV2));
+    apply(dest, JSON.stringify(quiltV2));
+    const ids = readVersionsFrom(dest, 'p', 'throw').map((v) => v.id);
+    expect(ids).toEqual(['q2', 'q1']);
+    // Same content under another id is also a duplicate.
+    const f = JSON.parse(JSON.stringify(quiltV2));
+    f.projects.p.sizes.throw.versions = f.projects.p.sizes.throw.versions.map((v: { id: string }) => ({ ...v, id: `copy-${v.id}` }));
+    apply(dest, JSON.stringify(f));
+    expect(readVersionsFrom(dest, 'p', 'throw')).toHaveLength(2);
+  });
+
+  it('respects the version limits, newest first', () => {
+    const dest = new FakeStorage();
+    const autos = Array.from({ length: 8 }, (_, i) => ({ ...version('throw', 100 + i), auto: true, reason: 'Before shuffle', createdAt: 1000 + i }));
+    dest.setItem('vq:v1:versions:p:throw', JSON.stringify([...autos].reverse()));
+    dest.setItem('vq:v1:design:p:throw', JSON.stringify(setLineupSlot(throwD, 1, 'd2-c2')));
+    expect(apply(dest, JSON.stringify(quiltV2))).toEqual({ ok: true });
+    const list = readVersionsFrom(dest, 'p', 'throw');
+    expect(list.filter((v) => v.auto)).toHaveLength(8);
+    expect(list.filter((v) => !v.auto)).toHaveLength(1);
+    expect(list[0]?.id).toBe('new-auto');
+    expect(list.map((v) => v.createdAt)).toEqual([...list.map((v) => v.createdAt)].sort((a, b) => b - a));
+  });
+
+  it('sets guide progress to done for a complete quilt, else keeps the file value', () => {
+    const dest = filled();
+    apply(dest, JSON.stringify(quiltV2));
+    expect(readGuideFrom(dest, 'p', 'throw')).toBe('done');
+    const partial = setLineupSlot(throwD, 3, null as unknown as string);
+    const f = (guide: unknown) => JSON.stringify({ ...quiltV2, projects: { p: { sizes: { throw: { design: partial, guide, versions: [] } } } } });
+    apply(dest, f({ step: 'blocks', block: 0 }));
+    expect(readGuideFrom(dest, 'p', 'throw')).toEqual({ step: 'blocks', block: 0 });
+    apply(dest, f(null));
+    expect(readGuideFrom(dest, 'p', 'throw')).toBeNull();
+  });
+
+  it('rolls back every key it touched when a write fails', () => {
+    for (const n of [1, 2, 3, 4]) {
+      const dest = filled();
+      const before = new Map(dest.map);
+      dest.failOnSet = n;
+      const r = apply(dest, JSON.stringify({ ...quiltV2, projects: { p: { sizes: { throw: { design: setLineupSlot(throwD, 0, 'd6-c1'), guide: null, versions: [version('throw', 9)] } } } } }));
+      expect(r.ok).toBe(false);
+      expect(dest.map).toEqual(before);
+    }
+  });
+
+  it('builds a quilt file from the live design and names it', () => {
+    const empty = new FakeStorage();
+    empty.setItem('vq:v1:design:p:crib', 'x');
+    const b = buildQuiltBackup(empty, NOW, ctx, 'p', 'throw', throwD);
+    expect(b.scope).toBe('quilt');
+    expect(b.settings).toBeUndefined();
+    expect(Object.keys(b.projects)).toEqual(['p']);
+    expect(Object.keys(b.projects.p!.sizes)).toEqual(['throw']);
+    expect(b.projects.p?.sizes.throw?.design).toEqual(throwD);
+    expect(b.projects.p?.sizes.throw).toMatchObject({ name: 'Throw', cols: 4, rows: 4 });
+    expect(quiltFileName('throw', new Date(2026, 10, 21, 9))).toBe('vibe-quilting-throw-2026-11-21.json');
+  });
+
+  it('round trips through build, serialize, parse and apply', () => {
+    const src = filled();
+    const live = readDesignFrom(src, 'p', 'throw')!;
+    const dest = new FakeStorage();
+    expect(apply(dest, serializeBackup(buildQuiltBackup(src, NOW, ctx, 'p', 'throw', live)))).toEqual({ ok: true });
+    const x = seen(dest).sizes.find((z) => z.id === 'throw')!;
+    expect(x.design).toEqual(live);
+    expect(x.versions.map((v) => v.id).sort()).toEqual(['v1', 'v2']);
+    expect(seen(dest).sizes.find((z) => z.id === 'crib')?.design).toBeNull();
   });
 });

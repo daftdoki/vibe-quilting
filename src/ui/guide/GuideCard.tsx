@@ -3,6 +3,7 @@
  * of the side panel in the wide layout.
  */
 import { useId, type ReactNode } from 'react';
+import { repeatedFabricBlocks } from '../../core/design';
 import type { Design, FabricDef, PatternDef, ProjectDef, ResolvedPiece } from '../../core/types';
 import type { GuideStepId } from '../../core/storage';
 import type { CheckpointUpdate } from '../versions/useVersions';
@@ -25,6 +26,8 @@ interface Props {
   wide: boolean;
   exporting: boolean;
   onExport(): void;
+  onSaveQuilt(): void;
+  canSaveQuilt: boolean;
   onHelp(): void;
   onShuffle(): void;
 }
@@ -62,7 +65,7 @@ function instruction(step: GuideStepId, p: Props): string {
         : `${head} Tap a fabric, then tap a piece to change it.`;
     }
     case 'done':
-      return 'Export a picture of it, or keep editing. Your work saves on this device as you go. To use it on another device, open the three dots menu and tap Export data.';
+      return 'Export a picture of it, save it to a file, or keep editing. Your work saves on this device as you go. A quilt file opens again here or on another device.';
   }
 }
 
@@ -131,6 +134,7 @@ export function GuideCard(props: Props) {
           fabricsById={fabricsById}
           fabricCount={project.collection.fabrics.length}
           cutLine={cutLine(project.pattern, props.slotPieces)}
+          repeatBlocks={repeatedFabricBlocks(project.pattern, design.lineup, design.cells.length)}
         />
       );
       break;
@@ -152,7 +156,15 @@ export function GuideCard(props: Props) {
       break;
     case 'done':
       body = (
-        <DoneStep wide={wide} exporting={exporting} onExport={onExport} onHelp={onHelp} onKeepEditing={guide.exit} />
+        <DoneStep
+          wide={wide}
+          exporting={exporting}
+          onExport={onExport}
+          onSaveQuilt={props.onSaveQuilt}
+          canSaveQuilt={props.canSaveQuilt}
+          onHelp={onHelp}
+          onKeepEditing={guide.exit}
+        />
       );
       break;
   }

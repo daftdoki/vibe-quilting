@@ -3,6 +3,7 @@ import {
   clearAllOverrides,
   clearOverride,
   createEmptyDesign,
+  isEmptyDesign,
   fabricUsage,
   fillEmptySlots,
   getSize,
@@ -220,14 +221,30 @@ export function Workspace({ project }: { project: ProjectDef }) {
     [trayRole, fillFromTray, toggleFabric],
   );
 
+  const [freshDropsVersions, setFreshDropsVersions] = useState(false);
+  // Nothing to start over from when the quilt is empty and no version is saved.
+  const canStartFresh = !isEmptyDesign(design) || versions.list.length > 0;
+  const openStartFresh = () => {
+    setFreshDropsVersions(false);
+    setSheet('confirm-guide');
+  };
+
   const switchMode = (m: Mode) => {
     setMode(m);
     setInfoKey(null);
     setSelectedCell(null);
   };
 
+  // Start fresh: empty this size and run the setup again. With `dropVersions`
+  // the size's saved versions go too, so no automatic version is kept either.
   const startGuideOver = () => {
-    checkpoint(REASONS.startOver, (d) => createEmptyDesign(pattern, d.sizeId));
+    if (freshDropsVersions && versions.list.length > 0) {
+      if (!versions.clearAll()) return;
+      update((d) => createEmptyDesign(pattern, d.sizeId));
+    } else {
+      checkpoint(REASONS.startOver, (d) => createEmptyDesign(pattern, d.sizeId));
+    }
+    setFreshDropsVersions(false);
     guide.start();
     setActiveId(null);
     setInfoKey(null);
@@ -274,6 +291,12 @@ export function Workspace({ project }: { project: ProjectDef }) {
   const saveVersion = () => {
     const name = versions.save();
     if (name) setToast(`Saved as ${name}`);
+  };
+
+  const canSaveQuilt = !isEmptyDesign(design) || versions.list.length > 0;
+  const saveQuiltFile = () => {
+    setSheet(null);
+    void data.saveQuilt(project.id, design);
   };
 
   const doExport = async () => {
@@ -502,6 +525,8 @@ export function Workspace({ project }: { project: ProjectDef }) {
       wide={wide}
       exporting={exporting}
       onExport={doExport}
+      onSaveQuilt={saveQuiltFile}
+      canSaveQuilt={canSaveQuilt}
       onHelp={() => setSheet('help')}
       onShuffle={shuffle}
     />
@@ -550,6 +575,17 @@ export function Workspace({ project }: { project: ProjectDef }) {
                 <Icon name="download" />
                 <span className="btn-label">{exporting ? 'Exporting' : 'Export PNG'}</span>
               </button>
+              <button
+                type="button"
+                className="btn btn-ghost topbar-btn topbar-btn-save"
+                onClick={saveQuiltFile}
+                disabled={!canSaveQuilt}
+                aria-label="Save quilt file"
+                title={canSaveQuilt ? 'Save quilt file' : 'Nothing to save yet'}
+              >
+                <Icon name="file" />
+                <span className="btn-label">Save quilt file</span>
+              </button>
             </>
           )}
           <button type="button" className="icon-btn" onClick={() => {
@@ -583,17 +619,31 @@ export function Workspace({ project }: { project: ProjectDef }) {
           >
             <Icon name="help" />
           </button>
-          {!guide.active && emptySlots > 0 && (
-            <button
-              type="button"
-              className="resume-btn"
-              onClick={guide.resume}
-              aria-label={`Finish setup. ${emptySlots} ${emptySlots === 1 ? 'fat quarter is' : 'fat quarters are'} empty.`}
-            >
-              <span className="resume-dot" aria-hidden="true" />
-              Finish setup
-            </button>
-          )}
+          <div className="canvas-pills">
+            {!guide.active && emptySlots > 0 && (
+              <button
+                type="button"
+                className="resume-btn"
+                onClick={guide.resume}
+                aria-label={`Finish setup. ${emptySlots} ${emptySlots === 1 ? 'fat quarter is' : 'fat quarters are'} empty.`}
+              >
+                <span className="resume-dot" aria-hidden="true" />
+                Finish setup
+              </button>
+            )}
+            {!isEmptyDesign(design) && (
+              <button
+                type="button"
+                className="resume-btn fresh-btn"
+                onClick={openStartFresh}
+                aria-label={`Start fresh. Empty the ${size.name} quilt and set it up again.`}
+                title="Empty this quilt and set it up again"
+              >
+                <Icon name="reset" size={18} />
+                Start fresh
+              </button>
+            )}
+          </div>
           <div className="status-slot" aria-live="polite">
             {status && <div className={`status status-${tapMode}`}>{status}</div>}
           </div>
@@ -684,6 +734,19 @@ export function Workspace({ project }: { project: ProjectDef }) {
             </button>
           </li>
           <li>
+            <button type="button" className="action" onClick={saveQuiltFile} disabled={!canSaveQuilt}>
+              <Icon name="file" />
+              <span>
+                <strong>Save quilt file</strong>
+                <span>
+                  {canSaveQuilt
+                    ? "Save this size's quilt and its versions to a file you can open again."
+                    : 'Nothing to save yet.'}
+                </span>
+              </span>
+            </button>
+          </li>
+          <li>
             <button
               type="button"
               className="action"
@@ -736,11 +799,15 @@ export function Workspace({ project }: { project: ProjectDef }) {
             </li>
           )}
           <li>
-            <button type="button" className="action" onClick={() => setSheet('confirm-guide')}>
+            <button type="button" className="action" onClick={openStartFresh} disabled={!canStartFresh}>
               <Icon name="reset" />
               <span>
-                <strong>Start over with the guide</strong>
-                <span>Empty this quilt and set it up again from the first step.</span>
+                <strong>Start fresh</strong>
+                <span>
+                  {canStartFresh
+                    ? 'Empty this quilt and set it up again from the first step.'
+                    : 'This quilt is already empty.'}
+                </span>
               </span>
             </button>
           </li>
@@ -811,7 +878,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
               <Icon name="fileDown" />
               <span>
                 <strong>Import data</strong>
-                <span>Load a file you exported. It replaces everything here.</span>
+                <span>Open a quilt file, or load a full export. A full export replaces everything here.</span>
               </span>
             </button>
           </li>
@@ -856,14 +923,30 @@ export function Workspace({ project }: { project: ProjectDef }) {
         />
       </Sheet>
 
-      <Sheet open={sheet === 'confirm-guide'} title="Start over with the guide?" onClose={() => setSheet(null)}>
-        <p className="confirm-text">This empties the quilt and starts the setup again. You can undo it.</p>
+      <Sheet open={sheet === 'confirm-guide'} title={`Start fresh with the ${size.name} quilt?`} onClose={() => setSheet(null)}>
+        <p className="confirm-text">
+          This empties the {size.name} quilt and starts the setup again. Your other sizes are not touched. You can undo
+          it.
+        </p>
+        {versions.list.length > 0 && (
+          <label className="confirm-check">
+            <input
+              type="checkbox"
+              checked={freshDropsVersions}
+              onChange={(e) => setFreshDropsVersions(e.target.checked)}
+            />
+            <span>
+              Also delete the {versions.list.length} saved {versions.list.length === 1 ? 'version' : 'versions'} for
+              this size. Undo will not bring {versions.list.length === 1 ? 'it' : 'them'} back.
+            </span>
+          </label>
+        )}
         <div className="confirm-actions">
           <button type="button" className="btn btn-ghost" onClick={() => setSheet(null)}>
             Keep my quilt
           </button>
           <button type="button" className="btn btn-danger" onClick={startGuideOver}>
-            Start over
+            Start fresh
           </button>
         </div>
       </Sheet>

@@ -44,6 +44,7 @@ Export data writes one JSON file with every quilt, saved version and guide posit
   "app": "vibe-quilting",
   "format": 2,          // what the writer produced
   "readableBy": 2,      // the oldest reader format that can read this file safely
+  "scope": "quilt",     // optional. Missing means "all"
   "exportedAt": "2026-11-21T10:00:00.000Z",
   "appVersion": "0.1.0", // informational
   "projects": {
@@ -66,6 +67,7 @@ The names, SKUs and grid sizes describe things so a later app can map old ids to
 - **Tolerant reading.** Unknown fields, projects, sizes and guide steps are ignored. A field with the wrong type drops that one item, never the file. Fatal errors are only: not JSON, not this app's file, too large, `readableBy` too new, and `projects` missing.
 - **Repair.** `repairDesign` (`src/core/repair.ts`) fits a design to the current pattern and fabrics, for files and for `localStorage` alike. An unknown fabric becomes an empty slot, bad overrides are dropped, lineups are cut or padded, and blocks that do not fit are reset. Only an unknown size id makes it give up.
 - **Permanent ids and aliases.** Project, size, piece and fabric ids are permanent. If one must change, add the old id to `aliases` (`FabricCollection.aliases`, `PatternDef.aliases.sizes` and `.pieces`, and `projectAliases` in `src/projects/index.ts`). Aliases apply to files, and to fabric and piece ids in stored designs. Keys in `localStorage` still use the old project and size ids, so renaming one of those also needs a storage migration.
+- **Scope.** `scope` says what a file is for. Missing or exactly `"all"` is a full export, and import replaces everything on the device. `"quilt"` is one size of one project (`buildQuiltBackup`), and import opens it with `applyQuiltBackup`: it replaces only that size's design, keeps the old design as an automatic version, merges the versions by id, and leaves everything else alone. A quilt file has no `settings` and no `lastSizeId`. Adding `scope` was additive, so `format` and `readableBy` stayed 2. **Safety rule:** any other `scope` value, from a future app, is read as a quilt-style file and never as a full replace, and `applyBackup` refuses data that is not scope `"all"`. A reader that does not understand a scope cannot wipe the device. Readers built before `scope` existed ignore it and would treat a quilt file as a full one.
 - **Fixtures.** `src/core/fixtures/backup-v*.json` are real files of each format, tested in `src/core/backup.test.ts`. Never edit or delete one. Only add new ones, and every format must keep importing.
 
 ## Dependency age rule

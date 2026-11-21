@@ -15,14 +15,25 @@
  *   `READER_FORMAT`. Additive changes never raise it.
  * - The migration chain is the only place that knows old shapes. The rest of
  *   the code reads the newest shape.
+ *
+ * Scope. `scope` says what a file is for. Missing or exactly "all" means a
+ * full export that replaces everything on the device. "quilt" means one size
+ * of one project, which is opened without touching anything else. Any other
+ * value, from a newer app, is read as a quilt-style file and never as a full
+ * replace, so a reader that does not understand a scope cannot wipe the
+ * device. `applyBackup` refuses data that is not scope "all" for the same
+ * reason.
  */
 import { isEmptyDesign } from './design';
+import { addVersion, designsEqual, mergeVersions } from './versions';
 import { repairDesign, resolveAlias } from './repair';
 import {
   isDesignShape,
   parseDataKey,
   parseGuideProgress,
   parseVersion,
+  quiltKeys,
+  removeGuideFrom,
   readDesignFrom,
   readGuideFrom,
   readHintSeenFrom,
@@ -46,6 +57,8 @@ export const BACKUP_APP = 'vibe-quilting';
 export const BACKUP_FORMAT = 2;
 /** The newest `readableBy` this app can read. */
 export const READER_FORMAT = 2;
+/** Reason and name of the automatic version saved when a quilt file replaces a quilt. */
+export const OPEN_FILE_REASON = 'Before opening a file';
 /** Longest backup text, in characters, that `parseBackup` accepts. */
 export const MAX_BACKUP_CHARS = 5_000_000;
 
@@ -63,11 +76,14 @@ export interface BackupFile {
   app: typeof BACKUP_APP;
   format: number;
   readableBy: number;
+  /** "quilt" for a single-quilt file. Missing means "all". */
+  scope?: 'all' | 'quilt';
   /** ISO 8601 time. */
   exportedAt: string;
   appVersion?: string;
   projects: Record<string, BackupProject>;
-  settings: { hintSeen?: boolean };
+  /** Not written in a quilt file. */
+  settings?: { hintSeen?: boolean };
 }
 
 export interface BackupProject {
@@ -94,6 +110,8 @@ export interface BackupSize {
 
 /** What a file holds once it is read and repaired, ready to write to storage. */
 export interface ImportData {
+  /** "all" replaces everything. "quilt" holds exactly one project with one size. */
+  scope: 'all' | 'quilt';
   projects: ImportProject[];
   hintSeen: boolean;
 }
@@ -138,12 +156,24 @@ export interface StorageCounts {
 }
 
 export interface BackupSummary extends StorageCounts {
+  scope: 'all' | 'quilt';
+  /** The quilt a scope "quilt" file holds. */
+  quilt: { projectId: string; sizeId: string; sizeName: string } | null;
   /** Null when the file has no usable date. */
   exportedAt: string | null;
   notes: ImportNotes;
 }
 
-export type BackupError = 'too-large' | 'not-json' | 'not-ours' | 'too-new' | 'bad-data';
+export type BackupError =
+  | 'too-large'
+  | 'not-json'
+  | 'not-ours'
+  | 'too-new'
+  | 'bad-data'
+  /** A quilt file for a pattern or size this app does not have. */
+  | 'quilt-unknown'
+  /** A quilt file with no design that can be opened. */
+  | 'quilt-unreadable';
 
 export type ParseResult =
   | { ok: true; file: ImportData; summary: BackupSummary }
@@ -204,8 +234,8 @@ function usedFabricIds(size: BackupSize): string[] {
   return ids;
 }
 
-export function buildBackup(storage: KeyValueStorage, now: Date, ctx: BackupContext): BackupFile {
-  const { projects, settings } = collect(storage);
+/** Add the descriptive fields for projects and sizes this app knows. */
+function describe(projects: Record<string, BackupProject>, ctx: BackupContext): void {
   for (const [id, project] of Object.entries(projects)) {
     const def = ctx.projects.find((p) => p.id === id);
     if (!def) continue;
@@ -214,8 +244,8 @@ export function buildBackup(storage: KeyValueStorage, now: Date, ctx: BackupCont
     const known = new Map(def.collection.fabrics.map((f) => [f.id, f]));
     const fabrics: NonNullable<BackupProject['collection']>['fabrics'] = {};
     for (const [sizeId, size] of Object.entries(project.sizes)) {
-      const def2 = def.pattern.sizes.find((s) => s.id === sizeId);
-      if (def2) Object.assign(size, { name: def2.name, cols: def2.cols, rows: def2.rows });
+      const sizeDef = def.pattern.sizes.find((s) => s.id === sizeId);
+      if (sizeDef) Object.assign(size, { name: sizeDef.name, cols: sizeDef.cols, rows: sizeDef.rows });
       for (const fid of usedFabricIds(size)) {
         const f = known.get(fid);
         if (f) fabrics[fid] = { name: f.name, sku: f.sku, design: f.design, colorway: f.colorway };
@@ -223,16 +253,42 @@ export function buildBackup(storage: KeyValueStorage, now: Date, ctx: BackupCont
     }
     project.collection = { id: def.collection.id, name: def.collection.name, fabrics };
   }
-  const file: BackupFile = {
-    app: BACKUP_APP,
-    format: BACKUP_FORMAT,
-    readableBy: 2,
-    exportedAt: now.toISOString(),
-    projects,
-    settings,
+}
+
+function header(now: Date, ctx: BackupContext): Pick<BackupFile, 'app' | 'format' | 'readableBy' | 'exportedAt' | 'appVersion'> {
+  const h: ReturnType<typeof header> = { app: BACKUP_APP, format: BACKUP_FORMAT, readableBy: 2, exportedAt: now.toISOString() };
+  if (ctx.appVersion) h.appVersion = ctx.appVersion;
+  return h;
+}
+
+export function buildBackup(storage: KeyValueStorage, now: Date, ctx: BackupContext): BackupFile {
+  const { projects, settings } = collect(storage);
+  describe(projects, ctx);
+  return { ...header(now, ctx), projects, settings };
+}
+
+/**
+ * A file for one size of one project: its design, all its saved versions and
+ * its guide progress. Pass `design` to use the live design instead of the
+ * stored one. A design that was only loaded is not written back to storage
+ * until she edits it, so the stored copy can be missing or older.
+ */
+export function buildQuiltBackup(
+  storage: KeyValueStorage,
+  now: Date,
+  ctx: BackupContext,
+  projectId: string,
+  sizeId: string,
+  design?: Design,
+): BackupFile {
+  const size: BackupSize = {
+    design: design ?? readDesignFrom(storage, projectId, sizeId),
+    guide: readGuideFrom(storage, projectId, sizeId),
+    versions: readVersionsFrom(storage, projectId, sizeId),
   };
-  if (ctx.appVersion) file.appVersion = ctx.appVersion;
-  return file;
+  const projects = { [projectId]: { sizes: { [sizeId]: size } } };
+  describe(projects, ctx);
+  return { ...header(now, ctx), scope: 'quilt', projects };
 }
 
 export function serializeBackup(file: BackupFile): string {
@@ -241,8 +297,17 @@ export function serializeBackup(file: BackupFile): string {
 
 /** "vibe-quilting-2026-03-12.json", using the local date. */
 export function backupFileName(now: Date): string {
+  return `vibe-quilting-${localDate(now)}.json`;
+}
+
+/** "vibe-quilting-throw-2026-03-12.json", using the local date. */
+export function quiltFileName(sizeId: string, now: Date): string {
+  return `vibe-quilting-${sizeId}-${localDate(now)}.json`;
+}
+
+function localDate(now: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
-  return `vibe-quilting-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}.json`;
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
 function countQuilts(projects: Iterable<{ sizeId: string; design: Design | null; versions: unknown[] }>): StorageCounts {
@@ -386,7 +451,7 @@ function readFile(file: Raw, ctx: BackupContext): { data: ImportData; notes: Imp
   }
   notes.missingFabrics = missing.size;
   const settings = isRecord(file.settings) ? file.settings : {};
-  return { data: { projects: [...projects.values()], hintSeen: settings.hintSeen === true }, notes };
+  return { data: { scope: 'all', projects: [...projects.values()], hintSeen: settings.hintSeen === true }, notes };
 }
 
 /** Check backup text, repair what it holds against this app, and count it. Never throws. */
@@ -406,12 +471,34 @@ export function parseBackup(text: string, ctx: BackupContext): ParseResult {
   const file = migrate(json, Math.min(format, BACKUP_FORMAT));
   if (!file) return { ok: false, reason: 'bad-data' };
   try {
-    const { data, notes } = readFile(file, ctx);
-    const sizes = data.projects.flatMap((p) => p.sizes);
-    const counts = countQuilts(sizes);
+    const read = readFile(file, ctx);
+    const { notes } = read;
+    let data = read.data;
     const exportedAt =
       typeof file.exportedAt === 'string' && !Number.isNaN(Date.parse(file.exportedAt)) ? file.exportedAt : null;
-    return { ok: true, file: data, summary: { ...counts, entries: 0, exportedAt, notes } };
+    // Only a missing scope or exactly "all" replaces everything. Any other value is read as a single quilt.
+    if (json.scope !== undefined && json.scope !== 'all') {
+      const found = data.projects.flatMap((p) => p.sizes.filter((s) => s.design).map((s) => ({ p, s })));
+      const [one] = found;
+      if (found.length !== 1 || !one) {
+        const unknown = found.length === 0 && notes.skippedQuilts + notes.skippedVersions > 0;
+        return { ok: false, reason: unknown ? 'quilt-unknown' : 'quilt-unreadable' };
+      }
+      const sizeName = ctx.projects.find((x) => x.id === one.p.projectId)?.pattern.sizes.find((z) => z.id === one.s.sizeId)?.name;
+      data = {
+        scope: 'quilt',
+        projects: [{ projectId: one.p.projectId, lastSizeId: one.s.sizeId, sizes: [one.s] }],
+        hintSeen: false,
+      };
+      const quilt = { projectId: one.p.projectId, sizeId: one.s.sizeId, sizeName: sizeName ?? one.s.sizeId };
+      return {
+        ok: true,
+        file: data,
+        summary: { ...countQuilts([one.s]), entries: 0, exportedAt, notes, scope: 'quilt', quilt },
+      };
+    }
+    const counts = countQuilts(data.projects.flatMap((p) => p.sizes));
+    return { ok: true, file: data, summary: { ...counts, entries: 0, exportedAt, notes, scope: 'all', quilt: null } };
   } catch {
     return { ok: false, reason: 'bad-data' };
   }
@@ -427,6 +514,8 @@ function isQuota(err: unknown): boolean {
  * are put back.
  */
 export function applyBackup(storage: KeyValueStorage, data: ImportData): ApplyResult {
+  // A quilt file must never replace everything.
+  if (data.scope !== 'all') return { ok: false, reason: 'failed' };
   const before: Record<string, string> = {};
   for (const k of appKeys(storage)) {
     const v = storage.getItem(k);
@@ -448,6 +537,63 @@ export function applyBackup(storage: KeyValueStorage, data: ImportData): ApplyRe
     try {
       for (const k of appKeys(storage)) storage.removeItem(k);
       for (const [k, v] of Object.entries(before)) storage.setItem(k, v);
+    } catch {
+      return { ok: false, reason: 'failed' };
+    }
+    return { ok: false, reason: isQuota(err) ? 'storage-full' : 'failed' };
+  }
+}
+
+/**
+ * Open a quilt file without touching other sizes or settings. The device's
+ * current quilt for that size is kept as an automatic version (by the usual
+ * `addVersion` rules), the incoming design is written, and the file's versions
+ * are merged into the size's list. If anything fails, the keys it touched go
+ * back to what they were.
+ */
+export function applyQuiltBackup(
+  storage: KeyValueStorage,
+  data: ImportData,
+  opts: { now: number; versionId: string },
+): ApplyResult {
+  const project = data.projects[0];
+  const size = project?.sizes[0];
+  if (data.scope !== 'quilt' || !project || !size?.design || data.projects.length !== 1 || project.sizes.length !== 1) {
+    return { ok: false, reason: 'failed' };
+  }
+  const { projectId } = project;
+  const { sizeId, design } = size;
+  const keys = quiltKeys(projectId, sizeId);
+  const before = new Map(keys.map((k) => [k, storage.getItem(k)]));
+  try {
+    let list = readVersionsFrom(storage, projectId, sizeId);
+    const current = readDesignFrom(storage, projectId, sizeId);
+    if (current && !designsEqual(current, design)) {
+      list = addVersion(list, {
+        id: opts.versionId,
+        sizeId,
+        name: OPEN_FILE_REASON,
+        createdAt: opts.now,
+        auto: true,
+        reason: OPEN_FILE_REASON,
+        design: current,
+      });
+    }
+    list = mergeVersions(list, size.versions);
+    writeDesignTo(storage, projectId, design);
+    if (list.length > 0) writeVersionsTo(storage, projectId, sizeId, list);
+    const complete = design.lineup.every((id) => id !== null);
+    if (complete) writeGuideTo(storage, projectId, sizeId, 'done');
+    else if (size.guide) writeGuideTo(storage, projectId, sizeId, size.guide);
+    else removeGuideFrom(storage, projectId, sizeId);
+    writeLastSizeTo(storage, projectId, sizeId);
+    return { ok: true };
+  } catch (err) {
+    try {
+      for (const [k, v] of before) {
+        if (v === null) storage.removeItem(k);
+        else storage.setItem(k, v);
+      }
     } catch {
       return { ok: false, reason: 'failed' };
     }

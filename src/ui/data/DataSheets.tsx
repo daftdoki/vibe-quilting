@@ -1,7 +1,15 @@
 import type { ReactNode } from 'react';
 import { Sheet } from '../Sheet';
 import type { DataTransfer } from './useDataTransfer';
-import { clearText, fileHoldsText, IMPORT_ERROR_TITLE, importErasesText, importNotesText } from './text';
+import {
+  clearText,
+  fileHoldsText,
+  IMPORT_ERROR_TITLE,
+  importErasesText,
+  importNotesText,
+  quiltHoldsText,
+  quiltOpensText,
+} from './text';
 
 /**
  * The safe button gets focus. The attribute covers a sheet that is still
@@ -63,6 +71,28 @@ export function DataSheets({ data }: { data: DataTransfer }) {
           </button>
           <button type="button" className="btn btn-danger" onClick={data.confirmImport}>
             Replace everything
+          </button>
+        </div>
+      </>
+    );
+  } else if (sheet?.kind === 'quilt' && sheet.summary.quilt) {
+    const { sizeName } = sheet.summary.quilt;
+    title = 'Open this quilt?';
+    body = (
+      <>
+        <p className="confirm-text">{quiltHoldsText(sizeName, sheet.summary.versions, sheet.summary.exportedAt)}</p>
+        <p className="confirm-text">{quiltOpensText(sizeName, sheet.deviceHasQuilt)}</p>
+        {importNotesText(sheet.summary.notes).map((t) => (
+          <p key={t} className="confirm-text">
+            {t}
+          </p>
+        ))}
+        <div className="confirm-actions confirm-actions-wrap">
+          <button ref={focusFirst} type="button" className="btn btn-ghost" onClick={closeSheet}>
+            Cancel
+          </button>
+          <button type="button" className="btn btn-primary" onClick={data.confirmQuilt}>
+            Open quilt
           </button>
         </div>
       </>

@@ -12,6 +12,13 @@ export function sizeInches(pattern: PatternDef, size: QuiltSize): string {
   return `${inches(width)} × ${inches(height)} in`;
 }
 
+/** The quiet note shown when her picks put one fabric twice in a block. Null when there is nothing to say. */
+export function repeatNote(blocks: number | null): string | null {
+  if (!blocks) return null;
+  const head = blocks === 1 ? '1 block has the same fabric twice.' : `${blocks} blocks have the same fabric twice.`;
+  return `${head} Change or move a fat quarter to spread them out, or leave it if you like the look.`;
+}
+
 /** "4 × 5 blocks" */
 export function sizeGrid(size: QuiltSize): string {
   const n = size.cols * size.rows;

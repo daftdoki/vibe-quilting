@@ -58,7 +58,7 @@ body {
   background: var(--mat);
   color: var(--ink);
   font-family: var(--font);
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.4;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
@@ -156,7 +156,7 @@ ol {
   max-width: 100%;
   min-width: 0;
   white-space: nowrap;
-  font-size: 13.5px;
+  font-size: 15px;
   line-height: 1.2;
   color: var(--ink-dim);
 }
@@ -200,7 +200,7 @@ ol {
   border: 0;
   border-radius: 999px;
   background: var(--panel-2);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -224,7 +224,7 @@ ol {
 
 .btn-small {
   padding: 0 14px;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .btn-shuffle {
@@ -438,14 +438,14 @@ ol {
   flex: 1;
   flex-direction: column;
   min-width: 0;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.3;
   color: var(--ink-dim);
 }
 
 .status-text strong {
   overflow: hidden;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 650;
   color: var(--ink);
   text-overflow: ellipsis;
@@ -461,7 +461,7 @@ ol {
   border-radius: 999px;
   background: var(--ink);
   color: var(--ink-dark);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   transform: translateX(-50%);
   animation: rise 180ms ease-out;
@@ -597,7 +597,7 @@ ol {
   background: var(--ink);
   box-shadow: 0 0 0 2.5px var(--panel);
   color: var(--ink-dark);
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 700;
   line-height: 24px;
   text-align: center;
@@ -616,7 +616,7 @@ ol {
 .swatch-name {
   display: flex;
   flex-direction: column;
-  font-size: 12.5px;
+  font-size: 14px;
   line-height: 1.25;
 }
 
@@ -632,7 +632,8 @@ ol {
 
 .is-wide .topbar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: auto auto minmax(0, 1fr);
+  column-gap: 16px;
   min-height: 64px;
   padding: 8px 12px 8px 10px;
   border-bottom: 1px solid var(--line);
@@ -678,7 +679,8 @@ ol {
 
 .panel-head p {
   margin-top: 2px;
-  font-size: 14px;
+  font-size: 16px;
+  line-height: 1.4;
   color: var(--ink-dim);
 }
 
@@ -693,7 +695,7 @@ ol {
 
 .lineup-note {
   flex: 1;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--ink-dim);
 }
 
@@ -727,14 +729,14 @@ ol {
   position: absolute;
   top: 4px;
   left: 4px;
-  min-width: 20px;
-  height: 20px;
+  min-width: 22px;
+  height: 22px;
   padding: 0 5px;
-  border-radius: 10px;
+  border-radius: 11px;
   background: rgba(29, 11, 51, 0.82);
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 700;
-  line-height: 20px;
+  line-height: 22px;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
@@ -757,7 +759,7 @@ ol {
 
 .slot-picker p {
   margin-bottom: 12px;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--ink-dim);
 }
 
@@ -853,7 +855,7 @@ ol {
 }
 
 .size-meta {
-  font-size: 13.5px;
+  font-size: 15px;
   color: var(--ink-dim);
   font-variant-numeric: tabular-nums;
 }
@@ -861,7 +863,7 @@ ol {
 .sizes-note {
   margin-top: 12px;
   padding: 0 10px;
-  font-size: 13.5px;
+  font-size: 15px;
   color: var(--ink-dim);
 }
 
@@ -992,7 +994,7 @@ ol {
 
 .help-topic li {
   position: relative;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.45;
   color: var(--ink-dim);
 }
@@ -1051,7 +1053,7 @@ ol {
 }
 
 .action span span {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--ink-dim);
 }
 
@@ -1063,7 +1065,7 @@ ol {
 
 .action-group-title {
   padding: 0 12px 2px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--ink-dim);
 }
@@ -1141,7 +1143,7 @@ ol {
 
 .guide-count {
   flex: none;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 650;
   color: var(--ink-dim);
   font-variant-numeric: tabular-nums;
@@ -1181,13 +1183,13 @@ ol {
 }
 
 .guide-text p {
-  font-size: 14.5px;
+  font-size: 16px;
   line-height: 1.4;
   color: var(--ink);
 }
 
 .guide-tip {
-  font-size: 12.5px;
+  font-size: 14.5px;
   line-height: 1.4;
   color: var(--ink-dim);
 }
@@ -1199,7 +1201,7 @@ ol {
 }
 
 .guide-note {
-  font-size: 13px;
+  font-size: 14.5px;
   color: var(--ink-dim);
 }
 
@@ -1239,7 +1241,7 @@ ol {
 }
 
 .guide-choice p {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -1288,12 +1290,12 @@ ol {
 }
 
 .guide-size-name {
-  font-size: 14.5px;
+  font-size: 15.5px;
   font-weight: 700;
 }
 
 .guide-size-meta {
-  font-size: 12px;
+  font-size: 13.5px;
   color: var(--ink-dim);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -1353,14 +1355,14 @@ ol {
   position: absolute;
   top: 3px;
   left: 3px;
-  min-width: 17px;
-  height: 17px;
+  min-width: 19px;
+  height: 19px;
   padding: 0 4px;
-  border-radius: 9px;
+  border-radius: 10px;
   background: rgba(29, 11, 51, 0.82);
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 700;
-  line-height: 17px;
+  line-height: 19px;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
@@ -1407,7 +1409,7 @@ ol {
   border-radius: 14px;
   background: rgba(0, 0, 0, 0.22);
   box-shadow: inset 0 0 0 1.5px var(--line);
-  font-size: 14.5px;
+  font-size: 15px;
   font-weight: 650;
 }
 
@@ -1438,7 +1440,7 @@ ol {
 
 .guide-help p {
   flex: 1;
-  font-size: 12.5px;
+  font-size: 14.5px;
   color: var(--ink-dim);
 }
 
@@ -1451,7 +1453,7 @@ ol {
 
 .is-narrow .guide-fabrics,
 .is-narrow .guide-touchups {
-  max-height: 44dvh;
+  max-height: 50dvh;
 }
 
 /* Back and Next stay in view while the rest of the card scrolls. */
@@ -1473,6 +1475,67 @@ ol {
 .is-wide .guide {
   margin: -6px -4px 0;
   padding: 4px 4px 0;
+}
+
+/* The side panel has room, so the guide reads at a comfortable size there. */
+.is-wide .guide {
+  gap: 12px;
+}
+
+.is-wide .guide-count {
+  font-size: 15px;
+}
+
+.is-wide .guide-exit {
+  font-size: 15px;
+}
+
+.is-wide .guide-title {
+  font-size: 24px;
+}
+
+.is-wide .guide-text p {
+  font-size: 18px;
+  line-height: 1.45;
+}
+
+.is-wide .guide-tip,
+.is-wide .guide-help p {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.is-wide .guide-note,
+.is-wide .guide-choice p {
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.is-wide .guide-size {
+  min-width: 112px;
+  padding: 10px 14px;
+}
+
+.is-wide .guide-size-name {
+  font-size: 17px;
+}
+
+.is-wide .guide-size-meta {
+  font-size: 14.5px;
+}
+
+.is-wide .guide-option {
+  font-size: 16px;
+}
+
+.is-wide .guide .btn-small {
+  min-height: 46px;
+  padding: 0 18px;
+  font-size: 16px;
+}
+
+.is-wide .guide-slot-num {
+  font-size: 12px;
 }
 
 .is-wide .guide-sizes {
@@ -1500,11 +1563,54 @@ ol {
 }
 
 /* Finish setup: a small way back into the guide while slots are empty. */
-.resume-btn {
+/* Pills at the top left of the quilt: Finish setup and Start fresh. */
+.canvas-pills {
   position: absolute;
   top: 10px;
   left: 10px;
+  right: 64px;
   z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.canvas-pills > * {
+  pointer-events: auto;
+}
+
+.fresh-btn {
+  color: var(--ink-dim);
+}
+
+.fresh-btn:hover {
+  color: var(--ink);
+}
+
+.confirm-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 44px;
+  margin: 10px 4px 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--panel-2);
+  font-size: 15px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.confirm-check input {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--pink);
+}
+
+.resume-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1516,7 +1622,7 @@ ol {
   box-shadow: 0 0 0 1px var(--line), 0 6px 16px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 650;
 }
 
@@ -1562,7 +1668,7 @@ ol {
 
 .lineup-empty p {
   flex: 1 1 160px;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--ink-dim);
 }
 
@@ -1651,7 +1757,19 @@ html.is-dragging * {
   padding: 0 14px 0 12px;
 }
 
-@media (max-width: 1280px) {
+/* The longest label drops first, then Versions and Export PNG. */
+@media (max-width: 1180px) {
+  .is-wide .topbar-btn-save {
+    width: 44px;
+    padding: 0;
+  }
+
+  .is-wide .topbar-btn-save .btn-label {
+    display: none;
+  }
+}
+
+@media (max-width: 1100px) {
   .is-wide .topbar-btn-wide {
     width: 44px;
     padding: 0;
@@ -1675,7 +1793,8 @@ html.is-dragging * {
 
 /* A phone on its side: Versions stays in the three dots menu. */
 @media (max-width: 760px) {
-  .is-wide .topbar-versions {
+  .is-wide .topbar-versions,
+  .is-wide .topbar-btn-save {
     display: none;
   }
 }
@@ -1696,7 +1815,7 @@ html.is-dragging * {
 }
 
 .is-narrow .turn-choices .guide-option {
-  font-size: 14px;
+  font-size: 15px;
 }
 
 /* A single pulse the first time undo or redo becomes available. */
@@ -1731,7 +1850,7 @@ html.is-dragging * {
 .versions-note,
 .versions-hint,
 .versions-empty {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--ink-dim);
 }
 
@@ -1779,7 +1898,7 @@ html.is-dragging * {
   place-items: center;
   width: 120px;
   height: 90px;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--ink-dim);
 }
 
@@ -1817,7 +1936,7 @@ html.is-dragging * {
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 8px;
-  font-size: 13px;
+  font-size: 14.5px;
   color: var(--ink-dim);
 }
 
@@ -1825,7 +1944,7 @@ html.is-dragging * {
   padding: 1px 8px;
   border-radius: 999px;
   background: var(--panel-2);
-  font-size: 12px;
+  font-size: 13.5px;
 }
 
 .version-current {
@@ -1845,5 +1964,118 @@ html.is-dragging * {
 }
 
 .version-confirm p {
+  font-size: 15px;
+}
+
+/*
+ * Readable sizes on wide screens. The rule for this app: text stays easy to
+ * read for older eyes, as large as each layout allows. Phones use a 16px body
+ * with nothing that carries meaning under 13px. Wide screens have the room,
+ * so body text is 17px and nothing that carries meaning is under 14px.
+ */
+.app.is-wide {
+  font-size: 17px;
+}
+
+.is-wide .title {
+  font-size: 22px;
+}
+
+.is-wide .size-chip {
+  font-size: 16px;
+}
+
+.is-wide .btn {
+  font-size: 17px;
+}
+
+.is-wide .btn-small {
+  font-size: 16px;
+}
+
+.is-wide .status-text {
+  font-size: 16px;
+}
+
+.is-wide .status-text strong {
+  font-size: 17px;
+}
+
+.is-wide .toast {
+  font-size: 16px;
+}
+
+.is-wide .swatch-name {
+  font-size: 15px;
+}
+
+.is-wide .swatch-count {
+  min-width: 26px;
+  height: 26px;
+  border-radius: 13px;
+  font-size: 14.5px;
+  line-height: 26px;
+}
+
+.is-wide .slot-num {
   font-size: 14px;
+}
+
+.is-wide .lineup-note,
+.is-wide .slot-picker p,
+.is-wide .lineup-empty p {
+  font-size: 16px;
+}
+
+.is-wide .size-meta,
+.is-wide .sizes-note {
+  font-size: 16px;
+}
+
+.is-wide .help-topic li,
+.is-wide .help-note,
+.is-wide .confirm-text,
+.is-wide .confirm-check {
+  font-size: 17px;
+}
+
+.is-wide .help-topic h3,
+.is-wide .help-topic summary {
+  font-size: 19px;
+}
+
+.is-wide .action strong {
+  font-size: 18px;
+}
+
+.is-wide .action span span,
+.is-wide .action-group-title {
+  font-size: 16px;
+}
+
+.is-wide .guide-slot-num {
+  font-size: 13.5px;
+}
+
+.is-wide .versions-empty,
+.is-wide .version-confirm p {
+  font-size: 16px;
+}
+
+.is-wide .version-meta {
+  font-size: 15.5px;
+}
+
+.is-wide .version-tag,
+.is-wide .version-thumb-missing {
+  font-size: 14px;
+}
+
+/* Quiet note when her picks put one fabric twice in a block. */
+.repeat-note {
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(255, 225, 77, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 225, 77, 0.3);
+  color: var(--ink);
 }

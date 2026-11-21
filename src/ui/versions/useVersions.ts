@@ -21,7 +21,7 @@ export const REASONS = {
   turnPattern: 'Before turn every other block',
   turnNone: 'Before all the same way up',
   fillRest: 'Before fill the rest',
-  startOver: 'Before starting over',
+  startOver: 'Before starting fresh',
   restore: 'Before restoring a version',
 } as const;
 
@@ -39,6 +39,8 @@ export interface Versions {
   restore(id: string): boolean;
   rename(id: string, name: string): void;
   remove(id: string): void;
+  /** Delete every version for this size. Returns false when storage failed. */
+  clearAll(): boolean;
   /** True when the version holds exactly the live design. */
   isCurrent(v: DesignVersion): boolean;
 }
@@ -119,6 +121,7 @@ export function useVersions(project: ProjectDef, ds: DesignState, notify: (messa
     },
     rename: (id, name) => commit(renameVersion(list, id, name)),
     remove: (id) => commit(deleteVersion(list, id)),
+    clearAll: () => (list.length === 0 ? true : commit([])),
     isCurrent: (v) => designsEqual(v.design, design),
   };
 }

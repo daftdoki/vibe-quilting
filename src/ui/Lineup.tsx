@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 import type { FabricDef, PatternDef } from '../core/types';
+import { repeatedFabricBlocks } from '../core/design';
+import { repeatNote } from './format';
 import { Icon } from './Icon';
 
 interface Props {
@@ -53,6 +55,7 @@ export function Lineup({
   const selId = sel !== null ? lineup[sel] : null;
   const selFabric = selId ? byId.get(selId) : undefined;
   const empty = lineup.filter((id) => id === null).length;
+  const repeat = repeatNote(repeatedFabricBlocks(pattern, lineup, blockCount));
 
   return (
     <div className="lineup">
@@ -76,6 +79,12 @@ export function Lineup({
           </button>
         )}
       </div>
+
+      {repeat && (
+        <p className="lineup-note repeat-note" role="status">
+          {repeat}
+        </p>
+      )}
 
       {empty > 0 && (
         <div className="lineup-empty">

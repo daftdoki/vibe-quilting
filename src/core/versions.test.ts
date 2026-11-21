@@ -4,7 +4,7 @@ import { createDesign, createEmptyDesign, rotateCell, setLineupSlot, shuffleLine
 import { loadVersions, saveVersions } from './storage';
 import { makeCollection } from './test-fixtures';
 import type { Design, DesignVersion } from './types';
-import { addVersion, AUTO_RUN_MS, defaultVersionName, deleteVersion, designsEqual, renameVersion } from './versions';
+import { addVersion, AUTO_RUN_MS, defaultVersionName, deleteVersion, designsEqual, mergeVersions, renameVersion } from './versions';
 
 const collection = makeCollection();
 const base = createDesign(stacks, collection, 'throw');
@@ -163,5 +163,25 @@ describe('version storage', () => {
       },
     });
     expect(saveVersions('p', 'throw', [version(base)])).toBe(false);
+  });
+});
+
+describe('mergeVersions', () => {
+  const a = version(variant(1), { id: 'a', createdAt: 100 });
+  const b = version(variant(2), { id: 'b', createdAt: 300 });
+  const c = version(variant(3), { id: 'c', createdAt: 200, auto: true, reason: 'Before shuffle' });
+
+  it('merges newest first and skips known ids', () => {
+    expect(mergeVersions([b, a], [c, a]).map((v) => v.id)).toEqual(['b', 'c', 'a']);
+  });
+
+  it('skips a deeply equal copy under another id', () => {
+    expect(mergeVersions([a], [{ ...a, id: 'other' }]).map((v) => v.id)).toEqual(['a']);
+  });
+
+  it('keeps the newest of each kind over the limit', () => {
+    const many = [1, 2, 3].map((i) => version(variant(i + 10), { id: `m${i}`, createdAt: i }));
+    const merged = mergeVersions(many.slice(0, 1), many.slice(1), { manual: 2, auto: 1 });
+    expect(merged.map((v) => v.id)).toEqual(['m3', 'm2']);
   });
 });

@@ -249,6 +249,15 @@ export function parseDataKey(key: string): DataKey | null {
   return null;
 }
 
+/** The storage keys that hold one size's quilt, versions and guide progress, and the project's last size. */
+export function quiltKeys(projectId: string, sizeId: string): string[] {
+  return [designKey(projectId, sizeId), versionsKey(projectId, sizeId), guideKey(projectId, sizeId), sizeKey(projectId)];
+}
+
+export function removeGuideFrom(s: Pick<KeyValueStorage, 'removeItem'>, projectId: string, sizeId: string): void {
+  s.removeItem(guideKey(projectId, sizeId));
+}
+
 export function readLastSizeFrom(s: Reader | null, projectId: string): string | null {
   return readFrom(s, sizeKey(projectId));
 }

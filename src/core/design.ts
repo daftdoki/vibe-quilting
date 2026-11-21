@@ -394,6 +394,35 @@ export function fabricUsage(pattern: PatternDef, design: Design): Map<string, nu
   return usage;
 }
 
+/**
+ * Number of blocks where the shuffle puts one fabric on two or more pieces.
+ * Hand-placed pieces are not counted, since those are deliberate. Returns null
+ * when the stack has fewer fat quarters than a block has pieces, because then
+ * every block must repeat a fabric and there is nothing to point out.
+ */
+export function repeatedFabricBlocks(
+  pattern: PatternDef,
+  lineup: readonly (string | null)[],
+  blockCount: number,
+): number | null {
+  const pieces = pattern.block.pieces.length;
+  const n = lineup.length;
+  if (n < pieces) return null;
+  let blocks = 0;
+  for (let b = 0; b < blockCount; b++) {
+    const seen = new Set<string>();
+    let repeat = false;
+    for (let p = 0; p < pieces; p++) {
+      const id = lineup[pattern.assign(b, p, n)];
+      if (id == null) continue;
+      if (seen.has(id)) repeat = true;
+      seen.add(id);
+    }
+    if (repeat) blocks++;
+  }
+  return blocks;
+}
+
 /** Number of lineup slots each fabric fills. */
 export function slotUsage(design: Design): Map<string, number> {
   const usage = new Map<string, number>();

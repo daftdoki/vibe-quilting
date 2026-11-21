@@ -90,3 +90,35 @@ export function defaultVersionName(list: readonly DesignVersion[]): string {
   while (used.has(n)) n++;
   return `Version ${n}`;
 }
+
+function sameVersion(a: DesignVersion, b: DesignVersion): boolean {
+  return (
+    a.id === b.id ||
+    (a.name === b.name &&
+      a.createdAt === b.createdAt &&
+      a.auto === b.auto &&
+      a.reason === b.reason &&
+      designsEqual(a.design, b.design))
+  );
+}
+
+/**
+ * Add versions from another list. One whose id is already in the list, or that
+ * is deeply equal to one in it, is skipped. The result is newest first, and
+ * over the limit the oldest of the same kind is dropped.
+ */
+export function mergeVersions(
+  list: readonly DesignVersion[],
+  incoming: readonly DesignVersion[],
+  limits: VersionLimits = VERSION_LIMITS,
+): DesignVersion[] {
+  const merged = [...list];
+  for (const v of incoming) if (!merged.some((x) => sameVersion(x, v))) merged.push(v);
+  merged.sort((a, b) => b.createdAt - a.createdAt);
+  const kept = { manual: 0, auto: 0 };
+  return merged.filter((v) => {
+    const k = v.auto ? 'auto' : 'manual';
+    kept[k]++;
+    return kept[k] <= limits[k];
+  });
+}

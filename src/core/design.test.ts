@@ -9,6 +9,7 @@ import {
   fillEmptySlots,
   fabricFor,
   fabricUsage,
+  repeatedFabricBlocks,
   getSize,
   resetBlocks,
   rotateCell,
@@ -283,5 +284,33 @@ describe('setAllRotations', () => {
     const turned = { ...stacks, rotations: [180] as const, defaultRotation: () => 180 as const };
     const d = setAllRotations(turned, base, 'none');
     expect(d.cells.every((c) => c.rotation === 180)).toBe(true);
+  });
+});
+
+describe('repeatedFabricBlocks', () => {
+  it('is 0 for the default lineup, crib through king', () => {
+    for (const size of stacks.sizes) {
+      if (size.id === 'runner') continue;
+      const d = createDesign(stacks, collection, size.id);
+      expect(repeatedFabricBlocks(stacks, d.lineup, d.cells.length), size.id).toBe(0);
+    }
+  });
+
+  it('counts blocks that get one fabric twice', () => {
+    const d = createDesign(stacks, collection, 'crib');
+    const lineup = [...d.lineup];
+    lineup[1] = lineup[0]!;
+    // Nine slots feed nine pieces in every crib block, so every block now repeats.
+    expect(repeatedFabricBlocks(stacks, lineup, d.cells.length)).toBe(9);
+  });
+
+  it('ignores empty slots', () => {
+    const d = createEmptyDesign(stacks, 'throw');
+    expect(repeatedFabricBlocks(stacks, d.lineup, d.cells.length)).toBe(0);
+  });
+
+  it('is null when the stack is shorter than a block', () => {
+    const d = createDesign(stacks, collection, 'runner');
+    expect(repeatedFabricBlocks(stacks, d.lineup, d.cells.length)).toBeNull();
   });
 });

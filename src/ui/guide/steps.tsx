@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { getSize, setAllRotations } from '../../core/design';
 import type { Design, FabricDef, PatternDef } from '../../core/types';
-import { inches } from '../format';
+import { inches, repeatNote } from '../format';
 import { quiltSizeInches } from '../../core/layout';
 import { Icon } from '../Icon';
 import { REASONS, type CheckpointUpdate } from '../versions/useVersions';
@@ -60,11 +60,14 @@ export function FabricsStep({
   fabricsById,
   fabricCount,
   cutLine,
+  repeatBlocks,
 }: {
   guide: Guide;
   design: Design;
   fabricsById: ReadonlyMap<string, FabricDef>;
   fabricCount: number;
+  /** Blocks where her picks put one fabric twice, or null when that cannot be avoided. */
+  repeatBlocks: number | null;
   /** How a fat quarter is cut, worded from the pattern. */
   cutLine: string | null;
 }) {
@@ -151,6 +154,12 @@ export function FabricsStep({
             </button>
           )}
         </div>
+      )}
+
+      {repeatNote(repeatBlocks) && (
+        <p className="guide-note repeat-note" role="status">
+          {repeatNote(repeatBlocks)}
+        </p>
       )}
 
       {cutLine && <p className="guide-note guide-cut">{cutLine}</p>}
@@ -276,12 +285,16 @@ export function DoneStep({
   wide,
   exporting,
   onExport,
+  onSaveQuilt,
+  canSaveQuilt,
   onHelp,
   onKeepEditing,
 }: {
   wide: boolean;
   exporting: boolean;
   onExport(): void;
+  onSaveQuilt(): void;
+  canSaveQuilt: boolean;
   onHelp(): void;
   onKeepEditing(): void;
 }) {
@@ -289,13 +302,13 @@ export function DoneStep({
     ? [
         'The side panel has the fabrics and the fat quarter stack with Shuffle.',
         'Blocks, at the top, moves and turns blocks.',
-        'The three dots menu has Export PNG and the resets.',
+        'The three dots menu has Export PNG, Save quilt file and the resets.',
         'Save this as a version from Versions at the top or the three dots menu, then keep trying other layouts.',
       ]
     : [
         'Fat quarters, below the quilt, opens the stack and Shuffle.',
         'Blocks, next to it, moves and turns blocks.',
-        'The three dots menu has Export PNG and the resets.',
+        'The three dots menu has Export PNG, Save quilt file and the resets.',
         'Save this as a version from the three dots menu, then keep trying other layouts.',
       ];
   return (
@@ -304,6 +317,10 @@ export function DoneStep({
         <button type="button" className="btn btn-small btn-primary" onClick={onExport} disabled={exporting}>
           <Icon name="download" size={18} />
           {exporting ? 'Exporting' : 'Export PNG'}
+        </button>
+        <button type="button" className="btn btn-small" onClick={onSaveQuilt} disabled={!canSaveQuilt}>
+          <Icon name="file" size={18} />
+          Save quilt file
         </button>
         <button type="button" className="btn btn-small" onClick={onKeepEditing}>
           Keep editing

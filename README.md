@@ -68,6 +68,22 @@ The names, SKUs and grid sizes describe things so a later app can map old ids to
 - **Permanent ids and aliases.** Project, size, piece and fabric ids are permanent. If one must change, add the old id to `aliases` (`FabricCollection.aliases`, `PatternDef.aliases.sizes` and `.pieces`, and `projectAliases` in `src/projects/index.ts`). Aliases apply to files, and to fabric and piece ids in stored designs. Keys in `localStorage` still use the old project and size ids, so renaming one of those also needs a storage migration.
 - **Fixtures.** `src/core/fixtures/backup-v*.json` are real files of each format, tested in `src/core/backup.test.ts`. Never edit or delete one. Only add new ones, and every format must keep importing.
 
+## Dependency age rule
+
+No external code enters this project until it has been public for at least 14 days. Most malicious package releases are found and pulled within days, so waiting two weeks keeps them out.
+
+The rule has two enforcement points:
+
+- **`.npmrc` sets `min-release-age=14`.** npm refuses to resolve any version published in the last 14 days, for direct and transitive dependencies. It needs npm 11.10 or later.
+- **`scripts/check-dep-age.mjs` checks the lockfile.** It looks up the publish date of every package in `package-lock.json` and fails if one is under 14 days old or does not come from the npm registry. It runs before `npm test` and `npm run build`, and on its own as `npm run check:deps`. This catches a lockfile that was written with the npm setting turned off.
+
+What this means in practice:
+
+- To add or update a package, run `npm install <name>` as usual. npm picks the newest version that is old enough. If nothing old enough fits, wait.
+- Do not pass `--min-release-age`, `--before` or `--no-package-lock` to get around it, and do not add entries to `min-release-age-exclude`.
+- A security fix published in the last 14 days is the one case for an exception. The project owner decides, and the exception goes in `.npmrc` as a `min-release-age-exclude[]` line with a comment and a date to remove it.
+- The rule covers everything, not only npm packages. No scripts or styles loaded from a CDN, no `npx` or `curl | sh` of something unpinned, no git or tarball dependencies, and no copied-in third party code newer than 14 days.
+
 ## Adding a fabric collection
 
 1. Put the swatch images in `assets-src/fabrics/<id>/`.

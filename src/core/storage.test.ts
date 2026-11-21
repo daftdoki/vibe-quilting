@@ -1,0 +1,141 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { stacks } from '../patterns/stacks';
+import { createDesign, createEmptyDesign, setLineupSlot, setOverride } from './design';
+import {
+  loadDesign,
+  loadGuide,
+  loadLastSize,
+  sanitizeDesign,
+  saveDesign,
+  saveGuide,
+  saveLastSize,
+} from './storage';
+import { makeCollection } from './test-fixtures';
+
+const collection = makeCollection();
+
+function stubStorage() {
+  const data = new Map<string, string>();
+  vi.stubGlobal('localStorage', {
+    getItem: (k: string) => data.get(k) ?? null,
+    setItem: (k: string, v: string) => void data.set(k, v),
+  });
+  return data;
+}
+
+beforeEach(() => void stubStorage());
+afterEach(() => vi.unstubAllGlobals());
+
+describe('storage', () => {
+  it('round trips a design and the last size', () => {
+    const d = createDesign(stacks, collection, 'crib');
+    saveDesign('p', d);
+    saveLastSize('p', 'crib');
+    expect(loadDesign('p', 'crib')).toEqual(d);
+    expect(loadDesign('p', 'king')).toBeNull();
+    expect(loadLastSize('p')).toBe('crib');
+    expect(loadLastSize('other')).toBeNull();
+  });
+
+  it('returns null on corrupt or wrong-shaped JSON', () => {
+    const data = stubStorage();
+    data.set('vq:v1:design:p:crib', '{nope');
+    expect(loadDesign('p', 'crib')).toBeNull();
+    data.set('vq:v1:design:p:crib', JSON.stringify({ sizeId: 'crib', lineup: [1] }));
+    expect(loadDesign('p', 'crib')).toBeNull();
+  });
+
+  it('is safe when storage is missing or throws', () => {
+    vi.stubGlobal('localStorage', undefined);
+    expect(loadDesign('p', 'crib')).toBeNull();
+    expect(() => saveDesign('p', createDesign(stacks, collection, 'crib'))).not.toThrow();
+    vi.stubGlobal('localStorage', {
+      getItem: () => {
+        throw new Error('blocked');
+      },
+      setItem: () => {
+        throw new Error('full');
+      },
+    });
+    expect(loadLastSize('p')).toBeNull();
+    expect(() => saveLastSize('p', 'crib')).not.toThrow();
+  });
+});
+
+describe('sanitizeDesign', () => {
+  const d = createDesign(stacks, collection, 'crib');
+
+  it('keeps a valid design', () => {
+    expect(sanitizeDesign(stacks, collection, d)).toEqual(d);
+  });
+
+  it('drops unknown fabric ids from overrides', () => {
+    const s = sanitizeDesign(stacks, collection, {
+      ...d,
+      overrides: { '0:A': 'ghost', '1:B': d.lineup[0]! },
+    });
+    expect(s?.overrides).toEqual({ '1:B': d.lineup[0] });
+  });
+
+  it('returns null on size mismatch', () => {
+    expect(sanitizeDesign(stacks, collection, { ...d, lineup: d.lineup.slice(1) })).toBeNull();
+    expect(sanitizeDesign(stacks, collection, { ...d, cells: d.cells.slice(1) })).toBeNull();
+    expect(sanitizeDesign(stacks, collection, { ...d, sizeId: 'nope' })).toBeNull();
+  });
+});
+
+describe('empty slots', () => {
+  const half = setOverride(
+    stacks,
+    setLineupSlot(setLineupSlot(createEmptyDesign(stacks, 'throw'), 0, 'd0-c0'), 5, 'd2-c1'),
+    3,
+    'C',
+    'd4-c0',
+  );
+
+  it('round trips a design with empty slots', () => {
+    saveDesign('p', half);
+    expect(loadDesign('p', 'throw')).toEqual(half);
+    const empty = createEmptyDesign(stacks, 'crib');
+    saveDesign('p', empty);
+    expect(loadDesign('p', 'crib')).toEqual(empty);
+  });
+
+  it('keeps empty and half-filled designs through sanitizeDesign', () => {
+    const empty = createEmptyDesign(stacks, 'king');
+    expect(sanitizeDesign(stacks, collection, empty)).toEqual(empty);
+    expect(sanitizeDesign(stacks, collection, half)).toEqual(half);
+  });
+
+  it('still rejects an unknown fabric in a slot', () => {
+    expect(sanitizeDesign(stacks, collection, setLineupSlot(half, 1, 'ghost'))).toBeNull();
+  });
+});
+
+describe('guide progress', () => {
+  it('round trips per project and size', () => {
+    expect(loadGuide('p', 'throw')).toBeNull();
+    saveGuide('p', 'throw', { step: 'fabrics', block: 0 });
+    saveGuide('p', 'king', { step: 'touchups', block: 7 });
+    saveGuide('q', 'throw', 'done');
+    expect(loadGuide('p', 'throw')).toEqual({ step: 'fabrics', block: 0 });
+    expect(loadGuide('p', 'king')).toEqual({ step: 'touchups', block: 7 });
+    expect(loadGuide('q', 'throw')).toBe('done');
+    expect(loadGuide('p', 'crib')).toBeNull();
+  });
+
+  it('uses the documented key', () => {
+    const data = stubStorage();
+    saveGuide('p', 'twin', { step: 'shuffle', block: 0 });
+    expect(JSON.parse(data.get('vq:v1:guide:p:twin')!)).toEqual({ step: 'shuffle', block: 0 });
+  });
+
+  it('returns null on bad data', () => {
+    const data = stubStorage();
+    const key = 'vq:v1:guide:p:throw';
+    for (const bad of ['{nope', '"later"', '{"step":"wander","block":0}', '{"step":"size","block":-1}', '{"step":"size","block":1.5}', '{"step":"size"}', 'null']) {
+      data.set(key, bad);
+      expect(loadGuide('p', 'throw'), bad).toBeNull();
+    }
+  });
+});

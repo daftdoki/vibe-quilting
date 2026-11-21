@@ -1,8 +1,18 @@
 /** localStorage persistence. Every call is safe when storage is missing or throws. */
-import { overrideKey } from './design';
-import type { Design, DesignVersion, FabricCollection, PatternDef } from './types';
+import type { Design, DesignVersion } from './types';
 
-const PREFIX = 'vq:v1:';
+export const STORAGE_PREFIX = 'vq:v1:';
+const PREFIX = STORAGE_PREFIX;
+const HINT_KEY = `${PREFIX}hint-seen`;
+/** The part of `Storage` this module uses, so tests and the backup code can pass a fake. */
+export interface KeyValueStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+  key(index: number): string | null;
+  readonly length: number;
+}
+
 const designKey = (projectId: string, sizeId: string) => `${PREFIX}design:${projectId}:${sizeId}`;
 const sizeKey = (projectId: string) => `${PREFIX}size:${projectId}`;
 const guideKey = (projectId: string, sizeId: string) => `${PREFIX}guide:${projectId}:${sizeId}`;
@@ -26,16 +36,32 @@ function store(): Storage | null {
   }
 }
 
-function read(key: string): string | null {
+function readFrom(s: Pick<KeyValueStorage, 'getItem'> | null, key: string): string | null {
   try {
-    return store()?.getItem(key) ?? null;
+    return s?.getItem(key) ?? null;
   } catch {
     return null;
   }
 }
 
+function read(key: string): string | null {
+  return readFrom(store(), key);
+}
+
+/**
+ * While true, every save in this module is skipped. The data tools set it
+ * between changing storage and reloading the page, so an autosave cannot
+ * write the old state back over what was just imported or erased.
+ */
+let writesFrozen = false;
+
+export function setWritesFrozen(frozen: boolean): void {
+  writesFrozen = frozen;
+}
+
 /** Returns false when the value could not be stored, for example when storage is full. */
 function write(key: string, value: string): boolean {
+  if (writesFrozen) return false;
   try {
     const s = store();
     if (!s) return false;
@@ -52,7 +78,7 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 }
 
 /** Shape check only. Use `sanitizeDesign` to check against a pattern and collection. */
-function isDesign(v: unknown): v is Design {
+export function isDesignShape(v: unknown): v is Design {
   if (!isRecord(v)) return false;
   if (typeof v.sizeId !== 'string') return false;
   if (!Array.isArray(v.lineup) || !v.lineup.every((x) => x === null || typeof x === 'string')) return false;
@@ -71,72 +97,112 @@ function isDesign(v: unknown): v is Design {
   return Object.values(v.overrides).every((x) => typeof x === 'string');
 }
 
-export function loadDesign(projectId: string, sizeId: string): Design | null {
-  const raw = read(designKey(projectId, sizeId));
-  if (raw === null) return null;
+type Reader = Pick<KeyValueStorage, 'getItem'>;
+type Writer = Pick<KeyValueStorage, 'setItem'>;
+
+/** Parse stored design text. Null when it is not JSON, has the wrong shape, or is for another size. */
+export function parseStoredDesign(raw: string, sizeId: string): Design | null {
   try {
     const parsed: unknown = JSON.parse(raw);
-    return isDesign(parsed) && parsed.sizeId === sizeId ? parsed : null;
+    return isDesignShape(parsed) && parsed.sizeId === sizeId ? parsed : null;
   } catch {
     return null;
   }
+}
+
+/**
+ * The stored design as it is, or null when there is none or it does not parse.
+ * Use `repairDesign` before showing it, so it fits the current pattern and fabrics.
+ */
+export function readDesignFrom(s: Reader | null, projectId: string, sizeId: string): Design | null {
+  const raw = readFrom(s, designKey(projectId, sizeId));
+  return raw === null ? null : parseStoredDesign(raw, sizeId);
+}
+
+export function loadDesign(projectId: string, sizeId: string): Design | null {
+  return readDesignFrom(store(), projectId, sizeId);
+}
+
+/** Like `saveDesign`, but on the given storage and it throws when the write fails. */
+export function writeDesignTo(s: Writer, projectId: string, design: Design): void {
+  s.setItem(designKey(projectId, design.sizeId), JSON.stringify(design));
 }
 
 export function saveDesign(projectId: string, design: Design): void {
   write(designKey(projectId, design.sizeId), JSON.stringify(design));
 }
 
-function isGuideProgress(v: unknown): v is GuideProgress {
-  if (v === 'done') return true;
-  if (!isRecord(v)) return false;
-  const block = v.block;
-  return (
-    (GUIDE_STEPS as readonly unknown[]).includes(v.step) &&
-    typeof block === 'number' &&
-    Number.isInteger(block) &&
-    block >= 0
-  );
+/** Guide progress with the right shape and a known step, cleaned of other fields. Null otherwise. */
+export function parseGuideProgress(v: unknown): GuideProgress | null {
+  if (v === 'done') return 'done';
+  if (!isRecord(v)) return null;
+  const { step, block } = v;
+  if (typeof block !== 'number' || !Number.isInteger(block) || block < 0) return null;
+  const known = GUIDE_STEPS.find((x) => x === step);
+  return known ? { step: known, block } : null;
+}
+
+export function readGuideFrom(s: Reader | null, projectId: string, sizeId: string): GuideProgress | null {
+  const raw = readFrom(s, guideKey(projectId, sizeId));
+  if (raw === null) return null;
+  try {
+    return parseGuideProgress(JSON.parse(raw));
+  } catch {
+    return null;
+  }
 }
 
 /** Saved guide progress for a size, or null when there is none or it does not parse. */
 export function loadGuide(projectId: string, sizeId: string): GuideProgress | null {
-  const raw = read(guideKey(projectId, sizeId));
-  if (raw === null) return null;
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!isGuideProgress(parsed)) return null;
-    return parsed === 'done' ? 'done' : { step: parsed.step, block: parsed.block };
-  } catch {
-    return null;
-  }
+  return readGuideFrom(store(), projectId, sizeId);
+}
+
+export function writeGuideTo(s: Writer, projectId: string, sizeId: string, progress: GuideProgress): void {
+  s.setItem(guideKey(projectId, sizeId), JSON.stringify(progress));
 }
 
 export function saveGuide(projectId: string, sizeId: string, progress: GuideProgress): void {
   write(guideKey(projectId, sizeId), JSON.stringify(progress));
 }
 
+/**
+ * One version with the right shape, cleaned of other fields and filed under
+ * `sizeId`. Null when a known field has the wrong type.
+ */
+export function parseVersion(v: unknown, sizeId: string): DesignVersion | null {
+  if (!isRecord(v)) return null;
+  if (
+    typeof v.id !== 'string' ||
+    typeof v.name !== 'string' ||
+    typeof v.createdAt !== 'number' ||
+    !Number.isFinite(v.createdAt) ||
+    typeof v.auto !== 'boolean' ||
+    (v.reason !== undefined && typeof v.reason !== 'string') ||
+    !isDesignShape(v.design)
+  ) {
+    return null;
+  }
+  const out: DesignVersion = {
+    id: v.id,
+    sizeId,
+    name: v.name,
+    createdAt: v.createdAt,
+    auto: v.auto,
+    design: { ...v.design, sizeId },
+  };
+  if (v.reason !== undefined) out.reason = v.reason;
+  return out;
+}
+
 function isVersion(v: unknown, sizeId: string): v is DesignVersion {
-  if (!isRecord(v)) return false;
-  return (
-    typeof v.id === 'string' &&
-    v.sizeId === sizeId &&
-    typeof v.name === 'string' &&
-    typeof v.createdAt === 'number' &&
-    Number.isFinite(v.createdAt) &&
-    typeof v.auto === 'boolean' &&
-    (v.reason === undefined || typeof v.reason === 'string') &&
-    isDesign(v.design) &&
-    v.design.sizeId === sizeId
-  );
+  return isRecord(v) && v.sizeId === sizeId && isRecord(v.design) && v.design.sizeId === sizeId && parseVersion(v, sizeId) !== null;
 }
 
 /**
  * Saved versions for a size, newest first. Entries that do not parse are
- * dropped. Use `sanitizeDesign` on a version's design before restoring it.
+ * dropped. Use `repairDesign` on a version's design before restoring it.
  */
-export function loadVersions(projectId: string, sizeId: string): DesignVersion[] {
-  const raw = read(versionsKey(projectId, sizeId));
-  if (raw === null) return [];
+export function parseStoredVersions(raw: string, sizeId: string): DesignVersion[] {
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -146,53 +212,71 @@ export function loadVersions(projectId: string, sizeId: string): DesignVersion[]
   }
 }
 
+export function readVersionsFrom(s: Reader | null, projectId: string, sizeId: string): DesignVersion[] {
+  const raw = readFrom(s, versionsKey(projectId, sizeId));
+  return raw === null ? [] : parseStoredVersions(raw, sizeId);
+}
+
+export function loadVersions(projectId: string, sizeId: string): DesignVersion[] {
+  return readVersionsFrom(store(), projectId, sizeId);
+}
+
+export function writeVersionsTo(s: Writer, projectId: string, sizeId: string, versions: readonly DesignVersion[]): void {
+  s.setItem(versionsKey(projectId, sizeId), JSON.stringify(versions));
+}
+
 /** Store a size's versions. Returns false when storage is full or missing. */
 export function saveVersions(projectId: string, sizeId: string, versions: readonly DesignVersion[]): boolean {
   return write(versionsKey(projectId, sizeId), JSON.stringify(versions));
 }
 
+export type DataKey =
+  | { kind: 'design' | 'versions' | 'guide'; projectId: string; sizeId: string }
+  | { kind: 'size'; projectId: string; sizeId: null };
+
+/** Split a key of a design, versions, guide or last size entry into its parts. Null for any other key. */
+export function parseDataKey(key: string): DataKey | null {
+  for (const kind of ['design', 'versions', 'guide'] as const) {
+    const head = `${PREFIX}${kind}:`;
+    if (!key.startsWith(head)) continue;
+    const rest = key.slice(head.length);
+    const i = rest.lastIndexOf(':');
+    if (i <= 0 || i === rest.length - 1) return null;
+    return { kind, projectId: rest.slice(0, i), sizeId: rest.slice(i + 1) };
+  }
+  const head = `${PREFIX}size:`;
+  if (key.startsWith(head) && key.length > head.length) return { kind: 'size', projectId: key.slice(head.length), sizeId: null };
+  return null;
+}
+
+export function readLastSizeFrom(s: Reader | null, projectId: string): string | null {
+  return readFrom(s, sizeKey(projectId));
+}
+
 export function loadLastSize(projectId: string): string | null {
-  return read(sizeKey(projectId));
+  return readLastSizeFrom(store(), projectId);
+}
+
+export function writeLastSizeTo(s: Writer, projectId: string, sizeId: string): void {
+  s.setItem(sizeKey(projectId), sizeId);
 }
 
 export function saveLastSize(projectId: string, sizeId: string): void {
   write(sizeKey(projectId), sizeId);
 }
 
-/**
- * Check a loaded design against the pattern and collection. Returns null when
- * the size is unknown, the lineup length or cell count is wrong, the lineup
- * names a missing fabric (empty slots are fine), or the cells are not a permutation of block ids with
- * allowed rotations. Overrides naming a missing fabric, piece, or block are dropped.
- */
-export function sanitizeDesign(
-  pattern: PatternDef,
-  collection: FabricCollection,
-  design: Design,
-): Design | null {
-  const size = pattern.sizes.find((s) => s.id === design.sizeId);
-  if (!size) return null;
-  const cellCount = size.cols * size.rows;
-  if (design.lineup.length !== pattern.lineupLength(size)) return null;
-  if (design.cells.length !== cellCount) return null;
+export function readHintSeenFrom(s: Reader | null): boolean {
+  return readFrom(s, HINT_KEY) === '1';
+}
 
-  const known = new Set(collection.fabrics.map((f) => f.id));
-  if (!design.lineup.every((id) => id === null || known.has(id))) return null;
+export function loadHintSeen(): boolean {
+  return readHintSeenFrom(store());
+}
 
-  const seen = new Set<number>();
-  for (const c of design.cells) {
-    if (c.blockId < 0 || c.blockId >= cellCount || seen.has(c.blockId)) return null;
-    if (!pattern.rotations.includes(c.rotation)) return null;
-    seen.add(c.blockId);
-  }
+export function writeHintSeenTo(s: Writer): void {
+  s.setItem(HINT_KEY, '1');
+}
 
-  const overrides: Record<string, string> = {};
-  for (let blockId = 0; blockId < cellCount; blockId++) {
-    for (const piece of pattern.block.pieces) {
-      const key = overrideKey(blockId, piece.id);
-      const fabricId = design.overrides[key];
-      if (fabricId !== undefined && known.has(fabricId)) overrides[key] = fabricId;
-    }
-  }
-  return { sizeId: design.sizeId, lineup: [...design.lineup], cells: design.cells.map((c) => ({ ...c })), overrides };
+export function saveHintSeen(): void {
+  write(HINT_KEY, '1');
 }

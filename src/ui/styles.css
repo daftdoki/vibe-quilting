@@ -1055,9 +1055,35 @@ ol {
   color: var(--ink-dim);
 }
 
+.action-group {
+  margin-top: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.action-group-title {
+  padding: 0 12px 2px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-dim);
+}
+
+.action-danger strong,
+.action-danger svg {
+  color: var(--pink);
+}
+
 .confirm-text {
   padding: 4px 4px 0;
   color: var(--ink-dim);
+}
+
+.confirm-text + .confirm-text {
+  margin-top: 10px;
+}
+
+.confirm-actions-wrap {
+  flex-wrap: wrap;
 }
 
 .confirm-actions {

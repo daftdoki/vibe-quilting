@@ -1,0 +1,457 @@
+{
+  "app": "vibe-quilting",
+  "format": 2,
+  "readableBy": 2,
+  "exportedAt": "2026-11-21T10:00:00.000Z",
+  "projects": {
+    "p": {
+      "lastSizeId": "throw",
+      "sizes": {
+        "crib": {
+          "design": {
+            "sizeId": "crib",
+            "lineup": [
+              "d0-c0",
+              "d1-c0",
+              "d2-c0",
+              "d3-c0",
+              "d4-c0",
+              "d5-c0",
+              "d6-c0",
+              "d0-c1",
+              "d1-c1"
+            ],
+            "cells": [
+              {
+                "blockId": 0,
+                "rotation": 0
+              },
+              {
+                "blockId": 1,
+                "rotation": 180
+              },
+              {
+                "blockId": 2,
+                "rotation": 0
+              },
+              {
+                "blockId": 3,
+                "rotation": 180
+              },
+              {
+                "blockId": 4,
+                "rotation": 0
+              },
+              {
+                "blockId": 5,
+                "rotation": 180
+              },
+              {
+                "blockId": 6,
+                "rotation": 0
+              },
+              {
+                "blockId": 7,
+                "rotation": 180
+              },
+              {
+                "blockId": 8,
+                "rotation": 0
+              }
+            ],
+            "overrides": {
+              "2:B": "d3-c1"
+            }
+          },
+          "guide": "done",
+          "versions": [],
+          "name": "Crib",
+          "cols": 3,
+          "rows": 3
+        },
+        "throw": {
+          "design": {
+            "sizeId": "throw",
+            "lineup": [
+              "d0-c0",
+              null,
+              null,
+              null,
+              "d1-c2",
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ],
+            "cells": [
+              {
+                "blockId": 0,
+                "rotation": 0
+              },
+              {
+                "blockId": 1,
+                "rotation": 180
+              },
+              {
+                "blockId": 2,
+                "rotation": 0
+              },
+              {
+                "blockId": 3,
+                "rotation": 180
+              },
+              {
+                "blockId": 4,
+                "rotation": 180
+              },
+              {
+                "blockId": 5,
+                "rotation": 0
+              },
+              {
+                "blockId": 6,
+                "rotation": 180
+              },
+              {
+                "blockId": 7,
+                "rotation": 0
+              },
+              {
+                "blockId": 8,
+                "rotation": 0
+              },
+              {
+                "blockId": 9,
+                "rotation": 180
+              },
+              {
+                "blockId": 10,
+                "rotation": 0
+              },
+              {
+                "blockId": 11,
+                "rotation": 180
+              },
+              {
+                "blockId": 12,
+                "rotation": 180
+              },
+              {
+                "blockId": 13,
+                "rotation": 0
+              },
+              {
+                "blockId": 14,
+                "rotation": 180
+              },
+              {
+                "blockId": 15,
+                "rotation": 0
+              }
+            ],
+            "overrides": {}
+          },
+          "guide": {
+            "step": "fabrics",
+            "block": 0
+          },
+          "versions": [
+            {
+              "id": "v2",
+              "sizeId": "throw",
+              "name": "Before shuffle",
+              "createdAt": 1773300002000,
+              "auto": true,
+              "reason": "Before shuffle",
+              "design": {
+                "sizeId": "throw",
+                "lineup": [
+                  "d0-c0",
+                  null,
+                  null,
+                  null,
+                  "d1-c2",
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ],
+                "cells": [
+                  {
+                    "blockId": 0,
+                    "rotation": 0
+                  },
+                  {
+                    "blockId": 1,
+                    "rotation": 180
+                  },
+                  {
+                    "blockId": 2,
+                    "rotation": 0
+                  },
+                  {
+                    "blockId": 3,
+                    "rotation": 180
+                  },
+                  {
+                    "blockId": 4,
+                    "rotation": 180
+                  },
+                  {
+                    "blockId": 5,
+                    "rotation": 0
+                  },
+                  {
+                    "blockId": 6,
+                    "rotation": 180
+                  },
+                  {
+                    "blockId": 7,
+                    "rotation": 0
+                  },
+                  {
+                    "blockId": 8,
+                    "rotation": 0
+                  },
+                  {
+                    "blockId": 9,
+                    "rotation": 180
+                  },
+                  {
+                    "blockId": 10,
+                    "rotation": 0
+                  },
+                  {
+                    "blockId": 11,
+                    "rotation": 180
+                  },
+                  {
+                    "blockId": 12,
+                    "rotation": 180
+                  },
+                  {
+                    "blockId": 13,
+                    "rotation": 0
+                  },
+                  {
+                    "blockId": 14,
+                    "rotation": 180
+                  },
+                  {
+                    "blockId": 15,
+                    "rotation": 0
+                  }
+                ],
+                "overrides": {}
+              }
+            },
+            {
+              "id": "v1",
+              "sizeId": "throw",
+              "name": "Version 1",
+              "createdAt": 1773300001000,
+              "auto": false,
+              "design": {
+                "sizeId": "throw",
+                "lineup": [
+                  "d0-c0",
+                  null,
+                  null,
+                  null,
+                  "d1-c2",
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ],
+                "cells": [
+                  {
+                    "blockId": 0,
+                    "rotation": 0
+                  },
+                  {
+                    "blockId": 1,
+                    "rotation": 180
+                  },
+                  {
+                    "blockId": 2,
+                    "rotation": 0
+                  },
+                  {
+                    "blockId": 3,
+                    "rotation": 180
+                  },
+                  {
+                    "blockId": 4,
+                    "rotation": 180
+                  },
+                  {
+                    "blockId": 5,
+                    "rotation": 0
+                  },
+                  {
+                    "blockId": 6,
+                    "rotation": 180
+                  },
+                  {
+                    "blockId": 7,
+                    "rotation": 0
+                  },
+                  {
+                    "blockId": 8,
+                    "rotation": 0
+                  },
+                  {
+                    "blockId": 9,
+                    "rotation": 180
+                  },
+                  {
+                    "blockId": 10,
+                    "rotation": 0
+                  },
+                  {
+                    "blockId": 11,
+                    "rotation": 180
+                  },
+                  {
+                    "blockId": 12,
+                    "rotation": 180
+                  },
+                  {
+                    "blockId": 13,
+                    "rotation": 0
+                  },
+                  {
+                    "blockId": 14,
+                    "rotation": 180
+                  },
+                  {
+                    "blockId": 15,
+                    "rotation": 0
+                  }
+                ],
+                "overrides": {}
+              }
+            }
+          ],
+          "name": "Throw",
+          "cols": 4,
+          "rows": 4
+        }
+      },
+      "title": "Test project",
+      "pattern": {
+        "id": "stacks",
+        "name": "Stacks",
+        "pieceIds": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G",
+          "H",
+          "I"
+        ]
+      },
+      "collection": {
+        "id": "fake",
+        "name": "Fake",
+        "fabrics": {
+          "d0-c0": {
+            "name": "d0-c0",
+            "sku": "d0-c0",
+            "design": "design0",
+            "colorway": "c0"
+          },
+          "d1-c0": {
+            "name": "d1-c0",
+            "sku": "d1-c0",
+            "design": "design1",
+            "colorway": "c0"
+          },
+          "d2-c0": {
+            "name": "d2-c0",
+            "sku": "d2-c0",
+            "design": "design2",
+            "colorway": "c0"
+          },
+          "d3-c0": {
+            "name": "d3-c0",
+            "sku": "d3-c0",
+            "design": "design3",
+            "colorway": "c0"
+          },
+          "d4-c0": {
+            "name": "d4-c0",
+            "sku": "d4-c0",
+            "design": "design4",
+            "colorway": "c0"
+          },
+          "d5-c0": {
+            "name": "d5-c0",
+            "sku": "d5-c0",
+            "design": "design5",
+            "colorway": "c0"
+          },
+          "d6-c0": {
+            "name": "d6-c0",
+            "sku": "d6-c0",
+            "design": "design6",
+            "colorway": "c0"
+          },
+          "d0-c1": {
+            "name": "d0-c1",
+            "sku": "d0-c1",
+            "design": "design0",
+            "colorway": "c1"
+          },
+          "d1-c1": {
+            "name": "d1-c1",
+            "sku": "d1-c1",
+            "design": "design1",
+            "colorway": "c1"
+          },
+          "d3-c1": {
+            "name": "d3-c1",
+            "sku": "d3-c1",
+            "design": "design3",
+            "colorway": "c1"
+          },
+          "d1-c2": {
+            "name": "d1-c2",
+            "sku": "d1-c2",
+            "design": "design1",
+            "colorway": "c2"
+          }
+        }
+      }
+    }
+  },
+  "settings": {
+    "hintSeen": true
+  },
+  "appVersion": "0.1.0"
+}

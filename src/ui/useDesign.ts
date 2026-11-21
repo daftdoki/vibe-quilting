@@ -10,7 +10,8 @@ import {
   undo as undoHistory,
   type History,
 } from '../core/history';
-import { loadDesign, loadLastSize, sanitizeDesign, saveDesign, saveLastSize } from '../core/storage';
+import { repairDesign } from '../core/repair';
+import { loadDesign, loadLastSize, saveDesign, saveLastSize } from '../core/storage';
 import type { Design, ProjectDef } from '../core/types';
 
 function initialSizeId(project: ProjectDef): string {
@@ -23,8 +24,9 @@ function initialSizeId(project: ProjectDef): string {
 function loadOrCreate(project: ProjectDef, sizeId: string): { design: Design; created: boolean } {
   const { pattern, collection } = project;
   const saved = loadDesign(project.id, sizeId);
-  const clean = saved ? sanitizeDesign(pattern, collection, saved) : null;
-  return clean ? { design: clean, created: false } : { design: createEmptyDesign(pattern, sizeId), created: true };
+  // Repair keeps a quilt whose fabrics or blocks changed. Only an unknown size makes it start empty.
+  const clean = saved ? repairDesign(pattern, collection, saved) : null;
+  return clean ? { design: clean.design, created: false } : { design: createEmptyDesign(pattern, sizeId), created: true };
 }
 
 function sameDesign(a: Design, b: Design): boolean {
@@ -63,14 +65,20 @@ export function useDesign(project: ProjectDef): DesignState {
   const [history, setHistory] = useState<History<Design>>(() => createHistory(boot.design));
   const sizeId = history.present.sizeId;
 
-  // Autosave after every change, including undo and redo.
+  // Autosave after every change, including undo and redo. A design that was only
+  // loaded is not written back until the size is changed, so a stored quilt this
+  // version could not read in full (or not at all) stays as it was until she edits it.
   const saved = useRef<Design | null>(null);
+  const loaded = useRef(new WeakSet<Design>([boot.design]));
+  const written = useRef(new Set<string>());
   useEffect(() => {
-    histories.current.set(history.present.sizeId, history);
-    if (saved.current !== history.present) {
-      saveDesign(project.id, history.present);
-      saved.current = history.present;
-    }
+    const present = history.present;
+    histories.current.set(present.sizeId, history);
+    if (saved.current === present) return;
+    saved.current = present;
+    if (loaded.current.has(present) && !written.current.has(present.sizeId)) return;
+    saveDesign(project.id, present);
+    written.current.add(present.sizeId);
   }, [history, project.id]);
 
   const update = useCallback((fn: (d: Design) => Design) => {
@@ -88,9 +96,10 @@ export function useDesign(project: ProjectDef): DesignState {
       if (!project.pattern.sizes.some((s) => s.id === next)) return;
       let h = histories.current.get(next);
       if (!h) {
-        const loaded = loadOrCreate(project, next);
-        if (loaded.created) setCreated((c) => new Set([...c, next]));
-        h = createHistory(loaded.design);
+        const fresh = loadOrCreate(project, next);
+        if (fresh.created) setCreated((c) => new Set([...c, next]));
+        loaded.current.add(fresh.design);
+        h = createHistory(fresh.design);
       }
       histories.current.set(next, h);
       saveLastSize(project.id, next);

@@ -24,16 +24,19 @@ export async function renderPng(scene: Scene): Promise<Blob> {
   });
 }
 
-/** Share the file where the platform can (phones), else download it. */
-export async function shareOrDownload(blob: Blob, filename: string, title: string): Promise<void> {
-  const file = new File([blob], filename, { type: 'image/png' });
+/**
+ * Share the file where the platform can (phones), else download it.
+ * Returns false when she closed the share sheet without sending anything.
+ */
+export async function shareOrDownload(blob: Blob, filename: string, title: string, mime: string): Promise<boolean> {
+  const file = new File([blob], filename, { type: mime });
   const coarse = window.matchMedia('(pointer: coarse)').matches;
   if (coarse && navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title });
-      return;
+      return true;
     } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return;
+      if (err instanceof DOMException && err.name === 'AbortError') return false;
       // NotAllowedError and others fall through to a download.
     }
   }
@@ -45,4 +48,5 @@ export async function shareOrDownload(blob: Blob, filename: string, title: strin
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  return true;
 }

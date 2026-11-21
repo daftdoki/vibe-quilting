@@ -4,7 +4,8 @@
  * `updateWithCheckpoint`, which saves an automatic version of the design first.
  */
 import { useCallback, useState } from 'react';
-import { sanitizeDesign, loadVersions, saveVersions } from '../../core/storage';
+import { repairDesign } from '../../core/repair';
+import { loadVersions, saveVersions } from '../../core/storage';
 import type { Design, DesignVersion, ProjectDef } from '../../core/types';
 import { addVersion, defaultVersionName, deleteVersion, designsEqual, renameVersion } from '../../core/versions';
 import { isEmptyDesign } from '../../core/design';
@@ -106,7 +107,7 @@ export function useVersions(project: ProjectDef, ds: DesignState, notify: (messa
     updateWithCheckpoint,
     restore: (id) => {
       const v = list.find((x) => x.id === id);
-      const clean = v ? sanitizeDesign(pattern, collection, v.design) : null;
+      const clean = v ? (repairDesign(pattern, collection, v.design)?.design ?? null) : null;
       if (!clean) {
         notify('This version no longer fits this quilt, so it cannot be restored.');
         return false;

@@ -202,7 +202,8 @@ function repairLineup(lineup: (string | null)[], movable: readonly boolean[]): (
 }
 
 /** Default cells for a size: row-major, blockId = cell index, pattern rotations. */
-function defaultCells(pattern: PatternDef, size: QuiltSize): PlacedBlock[] {
+/** Cells in order, with the pattern's own rotations. */
+export function defaultCells(pattern: PatternDef, size: QuiltSize): PlacedBlock[] {
   const cells: PlacedBlock[] = [];
   for (let i = 0; i < size.cols * size.rows; i++) {
     cells.push({

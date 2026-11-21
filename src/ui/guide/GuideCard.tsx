@@ -62,7 +62,7 @@ function instruction(step: GuideStepId, p: Props): string {
         : `${head} Tap a fabric, then tap a piece to change it.`;
     }
     case 'done':
-      return 'Export a picture of it, or keep editing. Your work saves on this device as you go.';
+      return 'Export a picture of it, or keep editing. Your work saves on this device as you go. To use it on another device, open the three dots menu and tap Export data.';
   }
 }
 

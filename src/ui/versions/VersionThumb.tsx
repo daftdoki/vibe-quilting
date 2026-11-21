@@ -1,7 +1,7 @@
 /** A small picture of a saved design, drawn with the shared quilt renderer. */
 import { useEffect, useMemo, useRef } from 'react';
 import { resolvePieces } from '../../core/layout';
-import { sanitizeDesign } from '../../core/storage';
+import { repairDesign } from '../../core/repair';
 import type { Design, ProjectDef } from '../../core/types';
 import { imageCache } from '../imageCache';
 import { buildScene, drawScene } from '../renderQuilt';
@@ -13,7 +13,7 @@ export function VersionThumb({ project, design, label }: { project: ProjectDef; 
   const { pattern, collection } = project;
   const ref = useRef<HTMLCanvasElement>(null);
   const scene = useMemo(() => {
-    const clean = sanitizeDesign(pattern, collection, design);
+    const clean = repairDesign(pattern, collection, design)?.design;
     if (!clean) return null;
     try {
       return buildScene(pattern, collection, clean, resolvePieces(pattern, collection, clean));

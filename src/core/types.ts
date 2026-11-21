@@ -42,6 +42,17 @@ export interface PatternDef {
   defaultSizeId: string;
   /** Rotations a block may take. Rectangular blocks allow only 0 and 180. */
   rotations: readonly Rotation[];
+  /**
+   * Ids are permanent, because saved quilts and data files name them. If a
+   * size or piece must be renamed, add the old id here, pointing to the new
+   * one. Old data is then read through these maps.
+   */
+  aliases?: {
+    /** Old size id to current size id. */
+    sizes?: Readonly<Record<string, string>>;
+    /** Old piece id to current piece id. */
+    pieces?: Readonly<Record<string, string>>;
+  };
   /** How many lineup slots (fat quarters) this size uses. */
   lineupLength(size: QuiltSize): number;
   /**
@@ -79,6 +90,12 @@ export interface FabricCollection {
   designer: string;
   manufacturer: string;
   fabrics: readonly FabricDef[];
+  /**
+   * Fabric ids are permanent, because saved quilts and data files name them.
+   * If a fabric must get a new id, add the old id here, pointing to the new
+   * one. Old data is then read through this map.
+   */
+  aliases?: Readonly<Record<string, string>>;
 }
 
 export interface ProjectDef {

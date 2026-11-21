@@ -16,11 +16,14 @@ import {
   swapLineupSlots,
 } from '../core/design';
 import { piecesForSlot, resolvePieces } from '../core/layout';
+import { loadHintSeen, saveHintSeen } from '../core/storage';
 import type { ProjectDef } from '../core/types';
 import { FabricTray } from './FabricTray';
 import { GuideCard } from './guide/GuideCard';
 import { TurnChoices } from './guide/steps';
 import { useGuide } from './guide/useGuide';
+import { DataSheets } from './data/DataSheets';
+import { useDataTransfer } from './data/useDataTransfer';
 import { Help } from './Help';
 import { renderPng, shareOrDownload } from './exportPng';
 import { sizeInches } from './format';
@@ -40,8 +43,6 @@ import { VersionsList } from './versions/VersionsList';
 type Mode = 'fabrics' | 'blocks';
 type SheetName = 'lineup' | 'size' | 'more' | 'help' | 'versions' | 'confirm-reset' | 'confirm-guide' | null;
 
-const HINT_KEY = 'vq:v1:hint-seen';
-
 /** Drag props for a tray that should not start drags. */
 const NO_DRAG = () => ({
   onPointerDown() {},
@@ -49,14 +50,6 @@ const NO_DRAG = () => ({
     e.preventDefault();
   },
 });
-
-function readHintSeen(): boolean {
-  try {
-    return localStorage.getItem(HINT_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
 
 export function Workspace({ project }: { project: ProjectDef }) {
   const { pattern, collection } = project;
@@ -70,10 +63,11 @@ export function Workspace({ project }: { project: ProjectDef }) {
   const [infoKey, setInfoKey] = useState<string | null>(null);
   const [selectedCell, setSelectedCell] = useState<number | null>(null);
   const [sheet, setSheet] = useState<SheetName>(null);
-  const [hintSeen, setHintSeen] = useState(readHintSeen);
+  const [hintSeen, setHintSeen] = useState(loadHintSeen);
   const [exporting, setExporting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const versions = useVersions(project, ds, setToast);
+  const data = useDataTransfer(setToast);
   // Big changes save an automatic version first, so they can be got back after a reload.
   const checkpoint = versions.updateWithCheckpoint;
   const guide = useGuide(project, ds, checkpoint);
@@ -110,11 +104,8 @@ export function Workspace({ project }: { project: ProjectDef }) {
 
   const dismissHint = useCallback(() => {
     setHintSeen(true);
-    try {
-      localStorage.setItem(HINT_KEY, '1');
-    } catch {
-      // Hint shows again next time.
-    }
+    // If this cannot be saved, the hint shows again next time.
+    saveHintSeen();
   }, []);
 
   const focusCell = guideControl?.focusCell ?? null;
@@ -292,7 +283,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
     try {
       const blob = await renderPng(scene);
       const name = `${project.id}-${size.id}.png`;
-      await shareOrDownload(blob, name, `${project.title}, ${size.name}`);
+      await shareOrDownload(blob, name, `${project.title}, ${size.name}`, 'image/png');
       setToast(`Exported ${name}`);
     } catch {
       setToast('Export failed. Try again.');
@@ -561,7 +552,11 @@ export function Workspace({ project }: { project: ProjectDef }) {
               </button>
             </>
           )}
-          <button type="button" className="icon-btn" onClick={() => setSheet('more')} aria-label="More actions">
+          <button type="button" className="icon-btn" onClick={() => {
+              data.refresh();
+              setSheet('more');
+            }}
+            aria-label="More actions">
             <Icon name="more" />
           </button>
         </div>
@@ -684,7 +679,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
               <Icon name="download" />
               <span>
                 <strong>Export PNG</strong>
-                <span>Save or share a picture of the whole quilt.</span>
+                <span>Save or share a picture of this quilt.</span>
               </span>
             </button>
           </li>
@@ -784,6 +779,59 @@ export function Workspace({ project }: { project: ProjectDef }) {
               </span>
             </button>
           </li>
+          <li className="action-group" role="presentation">
+            <h3 className="action-group-title">Your data</h3>
+          </li>
+          <li>
+            <button
+              type="button"
+              className="action"
+              disabled={!data.canExport}
+              onClick={() => {
+                setSheet(null);
+                void data.exportData();
+              }}
+            >
+              <Icon name="fileUp" />
+              <span>
+                <strong>Export data</strong>
+                <span>{data.canExport ? 'Save every quilt and version to a file.' : 'Nothing to export yet.'}</span>
+              </span>
+            </button>
+          </li>
+          <li>
+            <button
+              type="button"
+              className="action"
+              onClick={() => {
+                setSheet(null);
+                data.pickFile();
+              }}
+            >
+              <Icon name="fileDown" />
+              <span>
+                <strong>Import data</strong>
+                <span>Load a file you exported. It replaces everything here.</span>
+              </span>
+            </button>
+          </li>
+          <li>
+            <button
+              type="button"
+              className="action action-danger"
+              disabled={!data.canClear}
+              onClick={() => {
+                setSheet(null);
+                data.askClear();
+              }}
+            >
+              <Icon name="trash" />
+              <span>
+                <strong>Clear all data</strong>
+                <span>{data.canClear ? 'Erase every quilt and version and start fresh.' : 'Nothing to erase.'}</span>
+              </span>
+            </button>
+          </li>
         </ul>
       </Sheet>
 
@@ -842,6 +890,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
           </button>
         </div>
       </Sheet>
+      <DataSheets data={data} />
     </div>
   );
 }

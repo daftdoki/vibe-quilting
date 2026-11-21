@@ -5,7 +5,6 @@ import {
   loadDesign,
   loadGuide,
   loadLastSize,
-  sanitizeDesign,
   saveDesign,
   saveGuide,
   saveLastSize,
@@ -62,28 +61,6 @@ describe('storage', () => {
   });
 });
 
-describe('sanitizeDesign', () => {
-  const d = createDesign(stacks, collection, 'crib');
-
-  it('keeps a valid design', () => {
-    expect(sanitizeDesign(stacks, collection, d)).toEqual(d);
-  });
-
-  it('drops unknown fabric ids from overrides', () => {
-    const s = sanitizeDesign(stacks, collection, {
-      ...d,
-      overrides: { '0:A': 'ghost', '1:B': d.lineup[0]! },
-    });
-    expect(s?.overrides).toEqual({ '1:B': d.lineup[0] });
-  });
-
-  it('returns null on size mismatch', () => {
-    expect(sanitizeDesign(stacks, collection, { ...d, lineup: d.lineup.slice(1) })).toBeNull();
-    expect(sanitizeDesign(stacks, collection, { ...d, cells: d.cells.slice(1) })).toBeNull();
-    expect(sanitizeDesign(stacks, collection, { ...d, sizeId: 'nope' })).toBeNull();
-  });
-});
-
 describe('empty slots', () => {
   const half = setOverride(
     stacks,
@@ -99,16 +76,6 @@ describe('empty slots', () => {
     const empty = createEmptyDesign(stacks, 'crib');
     saveDesign('p', empty);
     expect(loadDesign('p', 'crib')).toEqual(empty);
-  });
-
-  it('keeps empty and half-filled designs through sanitizeDesign', () => {
-    const empty = createEmptyDesign(stacks, 'king');
-    expect(sanitizeDesign(stacks, collection, empty)).toEqual(empty);
-    expect(sanitizeDesign(stacks, collection, half)).toEqual(half);
-  });
-
-  it('still rejects an unknown fabric in a slot', () => {
-    expect(sanitizeDesign(stacks, collection, setLineupSlot(half, 1, 'ghost'))).toBeNull();
   });
 });
 

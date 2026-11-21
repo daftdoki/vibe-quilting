@@ -7,6 +7,7 @@ import {
   loadGuide,
   loadLastSize,
   parseDataKey,
+  parseGuideProgress,
   parseExcluded,
   saveDesign,
   saveExcluded,
@@ -97,8 +98,32 @@ describe('guide progress', () => {
 
   it('uses the documented key', () => {
     const data = stubStorage();
-    saveGuide('p', 'twin', { step: 'shuffle', block: 0 });
-    expect(JSON.parse(data.get('vq:v1:guide:p:twin')!)).toEqual({ step: 'shuffle', block: 0 });
+    saveGuide('p', 'twin', { step: 'blocks', block: 0 });
+    expect(JSON.parse(data.get('vq:v1:guide:p:twin')!)).toEqual({ step: 'blocks', block: 0 });
+  });
+
+  it('round trips the opening overview step, and older progress still reads', () => {
+    saveGuide('p', 'throw', { step: 'intro', block: 0 });
+    expect(loadGuide('p', 'throw')).toEqual({ step: 'intro', block: 0 });
+    const data = stubStorage();
+    for (const step of ['size', 'fabrics', 'blocks', 'touchups']) {
+      data.set('vq:v1:guide:p:throw', JSON.stringify({ step, block: 0 }));
+      expect(loadGuide('p', 'throw')).toEqual({ step, block: 0 });
+    }
+    data.set('vq:v1:guide:p:throw', '"done"');
+    expect(loadGuide('p', 'throw')).toBe('done');
+  });
+
+  it('reads the retired Mix the order step as Pick your fabrics', () => {
+    const data = stubStorage();
+    data.set('vq:v1:guide:p:throw', JSON.stringify({ step: 'shuffle', block: 0 }));
+    expect(loadGuide('p', 'throw')).toEqual({ step: 'fabrics', block: 0 });
+    data.set('vq:v1:guide:p:throw', JSON.stringify({ step: 'shuffle', block: 3, extra: true }));
+    expect(loadGuide('p', 'throw')).toEqual({ step: 'fabrics', block: 0 });
+    // A bad block still makes the entry unreadable, as for any step.
+    data.set('vq:v1:guide:p:throw', JSON.stringify({ step: 'shuffle', block: -1 }));
+    expect(loadGuide('p', 'throw')).toBeNull();
+    expect(parseGuideProgress({ step: 'toString', block: 0 })).toBeNull();
   });
 
   it('returns null on bad data', () => {

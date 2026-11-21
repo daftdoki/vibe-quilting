@@ -1401,12 +1401,6 @@ ol {
   box-shadow: 0 0 0 2px var(--panel), 0 0 0 4.5px var(--yellow);
 }
 
-.guide-shuffle {
-  min-width: 200px;
-  min-height: 56px;
-  font-size: 19px;
-}
-
 .guide-options {
   display: flex;
   flex-wrap: wrap;
@@ -1469,12 +1463,6 @@ ol {
 
 .is-narrow .guide-touchups {
   max-height: 50dvh;
-}
-
-/* Pick your fabrics is the fullest step. It gets enough height to show every
-   action button without scrolling, and the notes sit below them. */
-.is-narrow .guide-fabrics {
-  max-height: 57dvh;
 }
 
 /* Back and Next sit under the step counter and stay in view while the card scrolls. */
@@ -1938,10 +1926,6 @@ html.is-dragging * {
   100% {
     box-shadow: 0 0 0 12px rgba(255, 225, 77, 0);
   }
-}
-
-.guide-undo {
-  min-height: 50px;
 }
 
 /* Versions */
@@ -2416,6 +2400,7 @@ html.is-dragging * {
   gap: 8px;
   margin: 0;
   padding: 0 0 0 18px;
+  list-style: disc;
   font-size: 14.5px;
   line-height: 1.45;
 }
@@ -2425,7 +2410,96 @@ html.is-dragging * {
   font-size: 16px;
 }
 
-/* Enough height on a phone to show every action button without scrolling. */
+/*
+ * Enough height on a phone to show every action button without scrolling. At
+ * 375px the row wraps to Pick at random, then Fill the rest for me and
+ * Rearrange, then Clear picks and Exclude a fabric: three rows, as many as
+ * before Rearrange was added, so the height stays the same.
+ */
 .is-narrow .guide-fabrics {
   max-height: 56dvh;
+}
+
+/* Opening overview. The quilt is still empty, so on a phone the card may take more room. */
+.is-narrow .guide-intro {
+  max-height: 70dvh;
+}
+
+.guide-intro-steps {
+  display: grid;
+  gap: 10px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: intro-step;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+/* Each step carries its number in a yellow disc, matching the Step n of 4 counter. */
+.guide-intro-steps li {
+  position: relative;
+  min-height: 30px;
+  padding-left: 42px;
+  counter-increment: intro-step;
+}
+
+.guide-intro-steps li::before {
+  content: counter(intro-step);
+  position: absolute;
+  left: 0;
+  top: 1px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--yellow);
+  color: var(--ink-dark);
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.guide-intro-steps strong {
+  display: block;
+  font-weight: 750;
+}
+
+.guide-intro-steps span {
+  display: block;
+  color: var(--ink);
+}
+
+.guide-intro-help {
+  display: grid;
+  gap: 6px;
+  padding: 10px 14px 12px;
+  border-radius: 14px;
+  background: rgba(45, 226, 230, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(45, 226, 230, 0.4);
+}
+
+.guide-intro-help h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.guide-intro-help ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  list-style: disc;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.is-wide .guide-intro-steps,
+.is-wide .guide-intro-help ul {
+  font-size: 17px;
+}
+
+.is-wide .guide-intro-help h3 {
+  font-size: 17px;
 }

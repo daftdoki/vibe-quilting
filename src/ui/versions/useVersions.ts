@@ -23,7 +23,7 @@ export const REASONS = {
   fillRest: 'Before fill the rest',
   clearPicks: 'Before clearing picks',
   randomPicks: 'Before random picks',
-  leaveOut: 'Before hiding a fabric',
+  leaveOut: 'Before excluding a fabric',
   startOver: 'Before starting fresh',
   restore: 'Before restoring a version',
 } as const;

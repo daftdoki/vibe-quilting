@@ -138,7 +138,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
   const focusCell = guideControl?.focusCell ?? null;
 
   // The stack shows beside the guide on wide screens while the order is being mixed.
-  const stackBesideGuide = wide && (guide.step === 'shuffle' || guide.step === 'blocks');
+  const stackBesideGuide = wide && guide.step === 'blocks';
   const lineupVisible = wide ? !guide.active || stackBesideGuide : sheet === 'lineup';
   // The slot whose pieces get yellow outlines: the guide's target, or the slot picked in the stack.
   const outlinedSlot = guide.step === 'fabrics' ? guide.targetSlot : lineupVisible ? lineupSlot : null;
@@ -182,7 +182,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
     if (focusCell !== null) {
       canvas.zoomToCell(focusCell);
       zoomedRef.current = true;
-    } else if (zoomedRef.current || guideStep === 'done') {
+    } else if (zoomedRef.current || guideStep === 'done' || guideStep === 'intro') {
       canvas.fit();
       zoomedRef.current = false;
     }
@@ -238,7 +238,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
       }
       next.add(id);
       excluded.set(next);
-      setToast(`${name} is hidden.`);
+      setToast(`${name} is excluded.`);
       if (removeFabric(design, id) !== design) checkpoint(REASONS.leaveOut, (d) => removeFabric(d, id));
       setActiveId((cur) => (cur === id ? null : cur));
     },
@@ -620,8 +620,6 @@ export function Workspace({ project }: { project: ProjectDef }) {
       project={project}
       design={design}
       checkpointUpdate={checkpoint}
-      canUndo={ds.canUndo}
-      onUndo={doUndo}
       fabricsById={fabricsById}
       activeName={activeFabric?.name ?? null}
       slotPieces={slotPieces}
@@ -800,10 +798,10 @@ export function Workspace({ project }: { project: ProjectDef }) {
             {showTray && (
               <section className="panel-section">
                 <div className="panel-head">
-                  <h2>{hiding ? 'Tap to hide or bring back' : 'Fabrics'}</h2>
+                  <h2>{hiding ? 'Tap to exclude or bring back' : 'Fabrics'}</h2>
                   <p>
                     {hiding
-                      ? 'Fabrics with a slash are hidden.'
+                      ? 'Fabrics with a slash are excluded.'
                       : trayRole === 'fill'
                         ? 'Tap one to put it in the next fat quarter.'
                         : 'Tap one to paint with it, or drag it onto a piece.'}
@@ -816,7 +814,6 @@ export function Workspace({ project }: { project: ProjectDef }) {
               <section className="panel-section">
                 <div className="panel-head">
                   <h2>Fat quarter stack</h2>
-                  {stackBesideGuide && <p>Watch the order change as you shuffle.</p>}
                 </div>
                 {lineup}
               </section>
@@ -936,7 +933,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
                 <strong>Start fresh</strong>
                 <span>
                   {canStartFresh
-                    ? 'Empty this quilt and set it up again from the first step.'
+                    ? 'Empty this quilt and set it up again from the start.'
                     : 'This quilt is already empty.'}
                 </span>
               </span>

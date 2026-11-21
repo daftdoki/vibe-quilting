@@ -8,7 +8,8 @@ import { repeatedFabricBlocks } from '../../core/design';
 import type { Design, FabricDef, PatternDef, ProjectDef, ResolvedPiece } from '../../core/types';
 import type { GuideStepId } from '../../core/storage';
 import type { CheckpointUpdate } from '../versions/useVersions';
-import { BlocksStep, DoneStep, FabricsHow, FabricsStep, ShuffleStep, SizeStep, TouchupsStep } from './steps';
+import { BlocksStep, DoneStep, FabricsHow, FabricsStep, IntroStep, SizeStep, TouchupsStep } from './steps';
+import { TITLES } from './titles';
 import { COUNTED_STEPS, type Guide } from './useGuide';
 
 interface Props {
@@ -17,8 +18,6 @@ interface Props {
   design: Design;
   /** Applies a change after saving an automatic version. */
   checkpointUpdate: CheckpointUpdate;
-  canUndo: boolean;
-  onUndo(): void;
   fabricsById: ReadonlyMap<string, FabricDef>;
   /** Name of the fabric picked for painting, if any. */
   activeName: string | null;
@@ -39,26 +38,20 @@ interface Props {
   excludedCount: number;
 }
 
-const TITLES: Record<GuideStepId, string> = {
-  size: 'Quilt size',
-  fabrics: 'Pick your fabrics',
-  shuffle: 'Mix the order',
-  blocks: 'Turn and move blocks',
-  touchups: 'Touch-ups',
-  done: 'Your quilt is ready',
-};
 
 function instruction(step: GuideStepId, p: Props): string {
   const { guide, design, wide, activeName } = p;
   const n = design.lineup.length;
   switch (step) {
+    case 'intro':
+      return 'The guide walks you through it. Nothing is final, and you can change everything later.';
     case 'size':
       return 'Pick a quilt size.';
     case 'fabrics': {
       if (guide.hiding) {
         return wide
-          ? 'Tap a fabric in the list below to hide it. Tap a hidden one to bring it back.'
-          : 'Tap a fabric at the bottom of the screen to hide it. Tap a hidden one to bring it back.';
+          ? 'Tap a fabric in the list below to exclude it. Tap an excluded one to bring it back.'
+          : 'Tap a fabric at the bottom of the screen to exclude it. Tap an excluded one to bring it back.';
       }
       const where = wide ? 'in the list below' : 'below';
       const t = guide.targetSlot;
@@ -66,8 +59,6 @@ function instruction(step: GuideStepId, p: Props): string {
       if (design.lineup[t] !== null) return `Tap a fabric ${where} to replace fat quarter ${t + 1}.`;
       return `Pick fat quarter ${t + 1} of ${n}. Tap a fabric ${where}.`;
     }
-    case 'shuffle':
-      return 'Shuffle as often as you like. Each shuffle changes the order of the fat quarters, and so which fabric lands where in every block.';
     case 'blocks':
       return 'Tap a block, then another to swap them. Tap the same block twice to turn it.';
     case 'touchups': {
@@ -83,15 +74,13 @@ function instruction(step: GuideStepId, p: Props): string {
 
 function tip(step: GuideStepId, wide: boolean): string | null {
   switch (step) {
+    case 'intro':
+      return null;
     case 'size':
       return 'Each size keeps its own design, and you can change size later by tapping the title at the top.';
     case 'fabrics':
-      // This step is the fullest on a phone, so its zoom tip moved to the blocks step.
+      // This step is the fullest on a phone, so its zoom tip lives in the blocks step.
       return null;
-    case 'shuffle':
-      return wide
-        ? 'Undo and Redo at the top work on every change you make, not only a shuffle.'
-        : 'The arrows at the top undo and redo every change you make, not only a shuffle.';
     case 'blocks':
       return wide
         ? 'Pinch or use the scroll wheel to zoom, drag to move the quilt, and use the corner button to fit it back on screen.'
@@ -133,11 +122,15 @@ export function GuideCard(props: Props) {
   if (!step) return null;
 
   const index = COUNTED_STEPS.indexOf(step);
-  const counter = index >= 0 ? `Step ${index + 1} of ${COUNTED_STEPS.length}` : 'All set';
+  const counter =
+    index >= 0 ? `Step ${index + 1} of ${COUNTED_STEPS.length}` : step === 'intro' ? 'Before you start' : 'All set';
   const tipText = tip(step, wide);
 
   let body: ReactNode = null;
   switch (step) {
+    case 'intro':
+      body = <IntroStep />;
+      break;
     case 'size':
       body = <SizeStep guide={guide} pattern={project.pattern} design={design} />;
       break;
@@ -150,16 +143,7 @@ export function GuideCard(props: Props) {
           fabricCount={project.collection.fabrics.length}
           excludedCount={props.excludedCount}
           repeatBlocks={repeatedFabricBlocks(project.pattern, design.lineup, design.cells.length)}
-        />
-      );
-      break;
-    case 'shuffle':
-      body = (
-        <ShuffleStep
-          onShuffle={onShuffle}
-          disabled={design.lineup.filter((id) => id !== null).length < 2}
-          onUndo={props.onUndo}
-          canUndo={props.canUndo}
+          onRearrange={onShuffle}
         />
       );
       break;
@@ -196,7 +180,7 @@ export function GuideCard(props: Props) {
         <span className="guide-count">{counter}</span>
         <ol className="guide-progress" aria-hidden="true">
           {COUNTED_STEPS.map((s, i) => (
-            <li key={s} className={i < index || index < 0 ? 'is-past' : i === index ? 'is-now' : ''} />
+            <li key={s} className={i < index || step === 'done' ? 'is-past' : i === index ? 'is-now' : ''} />
           ))}
         </ol>
         <button type="button" className="btn btn-small btn-text guide-exit" onClick={guide.exit}>
@@ -207,14 +191,25 @@ export function GuideCard(props: Props) {
       {/* Back and Next sit under the step counter, where they are seen first. Touch-ups brings its own row. */}
       {step === 'touchups' ? (
         <TouchupsStep guide={guide} />
+      ) : step === 'intro' ? (
+        // Start sits where Next does on the other steps, so it shows without scrolling on a phone.
+        <div className="guide-nav">
+          <button type="button" className="btn btn-small btn-ghost" onClick={onHelp}>
+            <Icon name="help" size={18} />
+            How to use
+          </button>
+          <button type="button" className="btn btn-small btn-primary guide-next" onClick={guide.next}>
+            Start
+            <Icon name="arrowRight" size={18} />
+          </button>
+        </div>
       ) : step === 'fabrics' && guide.hiding ? null : (
         <div className="guide-nav">
-          {step !== 'size' && (
-            <button type="button" className="btn btn-small guide-back" onClick={guide.back}>
-              <Icon name="arrowLeft" size={18} />
-              Back
-            </button>
-          )}
+          {/* Quilt size goes back to the overview. Only the overview has no Back. */}
+          <button type="button" className="btn btn-small guide-back" onClick={guide.back}>
+            <Icon name="arrowLeft" size={18} />
+            Back
+          </button>
           {showNext && (
             <button type="button" className="btn btn-small btn-primary guide-next" onClick={guide.next}>
               Next
@@ -226,7 +221,7 @@ export function GuideCard(props: Props) {
 
       <div className="guide-title-row">
         <h2 id={titleId} className="guide-title">
-          {step === 'fabrics' && guide.hiding ? 'Hide fabrics' : TITLES[step]}
+          {step === 'fabrics' && guide.hiding ? 'Exclude fabrics' : TITLES[step]}
         </h2>
         {step === 'fabrics' && !guide.hiding && (
           <button
@@ -258,7 +253,7 @@ export function GuideCard(props: Props) {
         {/* In the hide mode the mode's instruction takes the place of this lead, so the card does not grow. */}
         {step === 'fabrics' && !guide.hiding && (
           <p>
-            Pick each fabric yourself, let the app pick at random, or do some of each. Hide any fabric you do not want
+            Pick each fabric yourself, let the app pick at random, or do some of each. Exclude any fabric you do not want
             and the app will not pick it.
           </p>
         )}
@@ -271,9 +266,6 @@ export function GuideCard(props: Props) {
         <p className="guide-tip">
           <span className="guide-tip-label">Tip</span> {tipText}
         </p>
-      )}
-      {step === 'size' && (
-        <p className="guide-tip">The full how to use guide is always under the ? button and in the three dots menu.</p>
       )}
 
     </section>

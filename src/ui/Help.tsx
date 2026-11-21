@@ -1,6 +1,8 @@
 import type { PatternDef } from '../core/types';
 import { FatQuarterDiagram } from './FatQuarterDiagram';
 import { Icon, type IconName } from './Icon';
+import { TITLES } from './guide/titles';
+import { COUNTED_STEPS } from './guide/useGuide';
 
 interface Topic {
   icon: IconName;
@@ -31,35 +33,33 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
       icon: 'flag',
       title: 'Guided setup',
       steps: [
-        'The guide takes an empty quilt to a finished design one step at a time. It starts on its own the first time you open a size.',
+        'The guide takes an empty quilt to a finished design one step at a time. It starts on its own the first time you open a size, and again when you tap Start fresh.',
+        `It opens with an overview called ${TITLES.intro}. It lists each step with one line on what happens there, and a Where to get help box. Tap Start to go to Quilt size, or How to use to open this guide. The overview does not show when you resume the guide or tap Finish setup.`,
         wide
-          ? 'The guide card sits at the top of the side panel. It has five steps and a closing step, and the counter at its top says which step you are on.'
-          : 'The guide card sits under the quilt, above the fabrics. It has five steps and a closing step, and the counter at its top says which step you are on.',
+          ? `The guide card sits at the top of the side panel. After the overview it has ${COUNTED_STEPS.length} steps and a closing step. The counter at its top says which step you are on, and reads Before you start on the overview.`
+          : `The guide card sits under the quilt, above the fabrics. After the overview it has ${COUNTED_STEPS.length} steps and a closing step. The counter at its top says which step you are on, and reads Before you start on the overview.`,
         wide
-          ? 'While the guide is open, the Fabrics and Blocks switch at the top is hidden, and the fat quarter stack shows only in Mix the order and Turn and move blocks. Each step shows the controls it needs.'
+          ? 'While the guide is open, the Fabrics and Blocks switch at the top is hidden, and the fat quarter stack shows only in Turn and move blocks. Each step shows the controls it needs.'
           : 'While the guide is open, the Fabrics and Blocks switch and the Fat quarters button are hidden. Each step shows the controls it needs.',
         'Quilt size: pick a quilt size. If that size already has a design, you can tap Start this size empty, or Keep it and exit the guide.',
-        'Pick your fabrics: tap fabrics to fill the stack of fat quarters in order. Dragging is off in this step. Tap any slot to make it the next one to fill, or to replace or clear it. Pick at random replaces every fat quarter with a random mix of fabrics each time you tap it, so tap it again to see another mix. Fill the rest for me keeps the fat quarters you picked and fills only the empty ones. It shows only while some are empty. Clear picks, beside it, empties every fat quarter so you can pick again. It shows once you have picked at least one. Undo brings them back.',
+        'Pick your fabrics: tap fabrics to fill the stack of fat quarters in order. Dragging is off in this step. Tap any slot to make it the next one to fill, or to replace or clear it. Pick at random replaces every fat quarter with a random mix of fabrics each time you tap it, so tap it again to see another mix. Fill the rest for me keeps the fat quarters you picked and fills only the empty ones. It shows only while some are empty. Rearrange keeps the fabrics you have and only changes where each one lands. It shows once at least 2 fat quarters have a fabric. Clear picks, beside it, empties every fat quarter so you can pick again. It shows once you have picked at least one. Undo brings them back.',
         'At the top, the step says you can pick each fabric yourself, let the app pick at random, or do some of each.',
         'How it works, beside the step\'s title, opens a short list under the title: how a fat quarter is cut, what each button in the step does, and whether fabrics will repeat in this size. It also has See how a fat quarter is used, which opens a picture. Tap How it works again to close it. It starts closed each time you come to the step.',
-        'Hide a fabric, in the same step, is for fabrics you do not want. Tap it and the card changes to Hide fabrics, with one instruction, a count of hidden fabrics and a Done hiding button. The rest of the step, and Back and Next, are put away until you finish.',
-        'While you are hiding, the fabric list has a yellow dashed frame and shows every fabric. A fabric that shows has an eye mark. A hidden one is grey with a slash through it. Tap a fabric to hide it, and tap a hidden one to bring it back. A note at the top of the quilt names the fabric each time.',
-        'Tap Done hiding when you are finished. Escape and Exit guide end it too.',
-        'A hidden fabric is not in the fabric list or the fat quarter stack\'s fabric picker, so it cannot be picked, painted or dragged. When any are hidden, the step says how many, with Show them to see them again and bring them back.',
-        'Hiding a fabric takes it off the quilt you have open. The fat quarters that held it become empty, and pieces you placed by hand with it go back to the shuffle. Quilts in other sizes keep it, but the list applies to every size, so Pick at random and Fill the rest for me never choose it in any size. Undo brings the quilt back, but the fabric stays hidden. You cannot hide the last fabric.',
+        'Exclude a fabric, in the same step, is for fabrics you do not want. Tap it and the card changes to Exclude fabrics, with one instruction, a count of excluded fabrics and a Done button. The rest of the step, and Back and Next, are put away until you finish.',
+        'While you are excluding, the fabric list has a yellow dashed frame and shows every fabric. A fabric that shows has an eye mark. An excluded one is grey with a slash through it. Tap a fabric to exclude it, and tap an excluded one to bring it back. A note at the top of the quilt names the fabric each time.',
+        'Tap Done when you are finished. Escape and Exit guide end it too.',
+        'An excluded fabric is not in the fabric list or the fat quarter stack\'s fabric picker, so it cannot be picked, painted or dragged. When any are excluded, the step says how many, with Show them to see them again and bring them back.',
+        'Excluding a fabric takes it off the quilt you have open. The fat quarters that held it become empty, and pieces you placed by hand with it go back to the shuffle. Quilts in other sizes keep it, but the list applies to every size, so Pick at random and Fill the rest for me never choose it in any size. Undo brings the quilt back, but the fabric stays excluded. You cannot exclude the last fabric.',
         'In this step, yellow outlines on the quilt show every piece the current fat quarter fills, except pieces you placed by hand.',
         'If you tap Next while some fat quarters are still empty, the guide asks first. Fill the rest and go on fills them and moves on. Keep picking stays on the step.',
-        wide
-          ? 'Mix the order: tap Shuffle as often as you like. Shuffle is off until at least 2 fat quarters have a fabric. The fat quarter stack shows in the side panel during this step and the next, so you can watch the order change.'
-          : 'Mix the order: tap Shuffle as often as you like. Shuffle is off until at least 2 fat quarters have a fabric.',
         'Turn and move blocks: pick Turn every other block or All the same way up, then tap blocks to swap or turn them.',
         'Touch-ups: the quilt zooms to one block at a time so you can paint pieces. Use Previous block and Next block, or Skip touch-ups. On the last block, Next block becomes Finish. These buttons are in one row under the step counter, with Back.',
         'Your quilt is ready: export a picture, save a quilt file, print a build sheet, or tap Keep editing to close the guide. A list shows where things are once the guide is closed.',
-        'Back and Next are near the top of the guide card, under the step counter. Back is white with an arrow pointing left, and Next is yellow with an arrow pointing right. Back goes to the previous step and keeps your changes. The first step has no Back. Next is not shown on Touch-ups or on the last screen, which have their own buttons. Exit guide, at the top right of the card, closes it at any step and leaves the quilt as it is.',
+        'Back and Next are near the top of the guide card, under the step counter. Back is white with an arrow pointing left, and Next is yellow with an arrow pointing right. Back goes to the previous step and keeps your changes. On Quilt size, Back goes to the overview. The overview has no Back. Start and How to use sit there instead. Next is not shown on Touch-ups or on the last screen, which have their own buttons. Exit guide, at the top right of the card, closes it at any step and leaves the quilt as it is.',
         'The guide remembers its step for each size, so a reload or a size switch picks up where you were.',
         'If any fat quarters are still empty after you leave the guide, a Finish setup button shows at the top left of the quilt. Tap it to go back to the Pick your fabrics step.',
-        'To open the guide again on the quilt you have, open the three dots menu and tap Resume the guide. It keeps the quilt as it is and opens at Pick your fabrics if any fat quarters are empty, otherwise at Mix the order. It is not in the menu while the guide is open.',
-        'To set up a size again from scratch, tap Start fresh at the top left of the quilt. It is also in the three dots menu. It empties the quilt for the size you have open and starts the guide. Other sizes are not touched.',
+        'To open the guide again on the quilt you have, open the three dots menu and tap Resume the guide. It keeps the quilt as it is and opens at Pick your fabrics if any fat quarters are empty, otherwise at Turn and move blocks. It is not in the menu while the guide is open.',
+        'To set up a size again from scratch, tap Start fresh at the top left of the quilt. It is also in the three dots menu. It empties the quilt for the size you have open and starts the guide from the overview. Other sizes are not touched.',
         'The Start fresh button on the quilt shows only while the quilt has a fabric on it. In the three dots menu, Start fresh also works on an empty quilt that has saved versions. It is off only when the quilt is empty and the size has no versions.',
         'Start fresh asks first. If this size has saved versions, you can tick a box to delete them too. Undo brings back the quilt, but not deleted versions.',
       ],
@@ -81,10 +81,10 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
           ? 'Scroll the side panel to see every fabric.'
           : 'Swipe the tray sideways to see every fabric.',
         'The number on each fabric counts the pieces that use it. In the guide\'s Pick your fabrics step it counts fat quarters instead.',
-        'A fabric you hid does not show in the list, so it cannot be painted or dragged.',
+        'A fabric you excluded does not show in the list, so it cannot be painted or dragged.',
         wide
-          ? 'To hide a fabric or bring one back, use Hide a fabric in the guide\'s Pick your fabrics step. There every fabric shows. One that shows has an eye mark, and a hidden one is grey with a slash, with Hidden under its name. Hiding also takes the fabric off the quilt you have open, and the list applies to every size. To get there, open the three dots menu, tap Resume the guide, and tap Back if it opens at Mix the order.'
-          : 'To hide a fabric or bring one back, use Hide a fabric in the guide\'s Pick your fabrics step. There every fabric shows. One that shows has an eye mark, and a hidden one is grey with a slash. Hiding also takes the fabric off the quilt you have open, and the list applies to every size. To get there, open the three dots menu, tap Resume the guide, and tap Back if it opens at Mix the order.',
+          ? 'To exclude a fabric or bring one back, use Exclude a fabric in the guide\'s Pick your fabrics step. There every fabric shows. One that shows has an eye mark, and an excluded one is grey with a slash, with Excluded under its name. Excluding also takes the fabric off the quilt you have open, and the list applies to every size. To get there, open the three dots menu, tap Resume the guide, and tap Back if it opens at Turn and move blocks.'
+          : 'To exclude a fabric or bring one back, use Exclude a fabric in the guide\'s Pick your fabrics step. There every fabric shows. One that shows has an eye mark, and an excluded one is grey with a slash. Excluding also takes the fabric off the quilt you have open, and the list applies to every size. To get there, open the three dots menu, tap Resume the guide, and tap Back if it opens at Turn and move blocks.',
       ],
     },
     {
@@ -134,7 +134,7 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
         ...(wide ? ['You can also drag a fabric from the list onto a slot.'] : []),
         'Shuffle mixes the order. Empty slots stay where they are.',
         'When slots are empty, Fill the rest for me picks fabrics for them. It keeps the slots you filled, mixes designs side by side, and spaces out repeats.',
-        'When the stack has more fat quarters than there are fabrics you have not hidden, some fabrics repeat. In the guide\'s Pick your fabrics step, How it works says so.',
+        'When the stack has more fat quarters than there are fabrics you have not excluded, some fabrics repeat. In the guide\'s Pick your fabrics step, How it works says so.',
         'If your picks put the same fabric twice in one block, a note in the stack and in the guide\'s Pick your fabrics step says how many blocks are affected. It is only a heads-up. Change or move a fat quarter to spread them out, or leave it. The note does not count pieces you placed by hand, and it does not show on a size with fewer fat quarters than a block has pieces, where repeats cannot be avoided.',
       ],
     },
@@ -169,8 +169,7 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
           ? 'Undo and Redo at the top step back and forward through your changes. On narrower screens they show as arrows.'
           : 'The arrows at the top undo and redo your changes. A short note on the quilt says Undone or Redone each time.',
         'The first time each one can be used after you open the app, it glows once.',
-        'In the guide\'s Mix the order step, Undo sits beside Shuffle, so you can step back from a shuffle right there.',
-        'Undo covers changes to the quilt: fabrics on pieces, the fat quarter stack, and blocks. It does not undo saving, renaming or deleting a version, a size switch, or hiding a fabric. After hiding a fabric, Undo brings back the quilt, but the fabric stays hidden.',
+        'Undo covers changes to the quilt: fabrics on pieces, the fat quarter stack, and blocks. It does not undo saving, renaming or deleting a version, a size switch, or excluding a fabric. After excluding a fabric, Undo brings back the quilt, but the fabric stays excluded.',
         'Each size has its own undo history of up to 99 changes. It lasts until you reload the page.',
         'After a reload, open Versions to get back an earlier layout. The app saves an automatic version before each big change.',
       ],
@@ -193,7 +192,7 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
         'The version that matches the quilt right now is marked Current, and its Restore button is off.',
         'Rename lets you type a new name of up to 40 characters. Enter or tapping elsewhere saves it, Escape cancels, and an empty name keeps the old one.',
         'Delete asks first. A deleted version cannot be brought back.',
-        'Automatic versions have an Automatic tag and are named for the action, such as Before shuffle. The app saves one before Shuffle, Reset to shuffle in the three dots menu, Reset blocks, Turn every other block, All the same way up, Pick at random, Fill the rest for me, Fill the rest and go on, Clear picks, hiding a fabric the quilt uses, Start fresh, Start this size empty, restoring a version, and opening a quilt file.',
+        'Automatic versions have an Automatic tag and are named for the action, such as Before shuffle. The app saves one before Shuffle, Rearrange, Reset to shuffle in the three dots menu, Reset blocks, Turn every other block, All the same way up, Pick at random, Fill the rest for me, Fill the rest and go on, Clear picks, excluding a fabric the quilt uses, Start fresh, Start this size empty, restoring a version, and opening a quilt file.',
         'Reset to shuffle for a single piece, in the bar at the bottom of the quilt, does not save one. Undo brings that piece back.',
         'Start fresh does not save an automatic version when you tick the box to delete this size\'s versions.',
         'It skips an automatic version when the action changes nothing, when the quilt is empty, when it matches the newest version, or when the newest version is an automatic one from the same action less than a minute ago. A run of shuffles keeps the layout from before the first one.',
@@ -246,10 +245,10 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
           : 'Open a quilt file, under Save & export in the three dots menu, opens a quilt file or a full export. It does the same as Import data.',
         'Save quilt file makes one file with the quilt for the size you have open, all its saved versions, and where you were in the guide. It is named vibe-quilting, the size, then the date. It is off while the quilt is empty and the size has no versions.',
         'Open the three dots menu. Your data is at the bottom, with Export data, Import data and Clear all data.',
-        'Export data saves one file with everything: the quilt for every size, all your saved versions, where you were in the guide, and the fabrics you hid. It is named vibe-quilting, then the date.',
+        'Export data saves one file with everything: the quilt for every size, all your saved versions, where you were in the guide, and the fabrics you excluded. It is named vibe-quilting, then the date.',
         'On a phone or tablet, Save quilt file and Export data open the share sheet where it can, so you can save the file to Files, AirDrop it, or send it to yourself. Otherwise the file downloads. Keep it somewhere safe as a backup.',
         'To move to another device, save a file on the first one. Send the file to yourself, or save it where both devices can reach it. On the other device, open the three dots menu, tap Import data and pick the file. Import data opens either kind of file.',
-        'Opening a quilt file replaces only that one size. The quilt you had in that size is kept as an automatic version called Before opening a file. It is not kept if that size was empty, already held the same quilt, or matches its newest version. The versions in the file are added to yours, without copies. The other sizes are not touched, and the fabrics you hid stay hidden. The app then reloads on that size. You can undo it by restoring that automatic version from Versions.',
+        'Opening a quilt file replaces only that one size. The quilt you had in that size is kept as an automatic version called Before opening a file. It is not kept if that size was empty, already held the same quilt, or matches its newest version. The versions in the file are added to yours, without copies. The other sizes are not touched, and the fabrics you excluded stay excluded. The app then reloads on that size. You can undo it by restoring that automatic version from Versions.',
         'A full export is different. Import data replaces everything on the device you run it on. The quilts and versions there are erased, and it cannot be undone. The app shows what the file holds and what will be erased before it does anything.',
         'For a full export, you can tap Export my data first on the confirm screen to keep what is on that device. It saves a file of the current data, and the confirm screen stays open.',
         'After a full import the app reloads and opens the size that was open when the file was exported.',
@@ -257,7 +256,7 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
         'If a fabric in the file is not in this app, the confirm screen says so, and the spots that used it open with no fabric. You can paint them again. If a quilt\'s blocks no longer fit, they go back to their starting places, and the confirm screen says that too.',
         'Import refuses a file that is not a Vibe Quilting file, a file that cannot be read or is damaged, a file that is too large, a file that needs a newer version of the app than the one you have, a quilt file for a pattern or size this app does not have, and a quilt file with no quilt in it. Nothing changes when it refuses a file. If the file needs a newer version, update the app and try again.',
         'The file only works with this app. Other programs cannot open it, and it is not a picture. Please do not edit it by hand.',
-        'Clear all data erases every quilt and version for every size, the list of fabrics you hid, and where you were in the guide. The app then opens as if for the first time. It asks first, and it cannot be undone. Undo will not bring the quilts back.',
+        'Clear all data erases every quilt and version for every size, the list of fabrics you excluded, and where you were in the guide. The app then opens as if for the first time. It asks first, and it cannot be undone. Undo will not bring the quilts back.',
         'The Clear all data confirm screen also has Export my data first, to save a file before you erase.',
         'Export data is off while there is nothing saved, and Save quilt file is off while the quilt is empty and has no versions. Clear all data is off when there is nothing to erase.',
       ],
@@ -268,7 +267,7 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
       steps: [
         'Reset to shuffle, in the three dots menu, removes every fabric you placed by hand. It asks first, and it is off when no piece is placed by hand.',
         'Reset blocks puts every block back in its place and turn. The fat quarters and hand-placed fabrics stay.',
-        'Start fresh, at the top left of the quilt and in the three dots menu, empties the quilt for the size you have open, puts the blocks back, and starts the guide. It can also delete that size\'s saved versions if you tick the box. Resume the guide keeps the quilt instead.',
+        'Start fresh, at the top left of the quilt and in the three dots menu, empties the quilt for the size you have open, puts the blocks back, and starts the guide from the overview. It can also delete that size\'s saved versions if you tick the box. Resume the guide keeps the quilt instead.',
         'Reset to shuffle, Reset blocks and Start fresh each save an automatic version first, so you can restore the quilt from Versions even after a reload. Start fresh does not when you tick the box to delete versions.',
         'Undo brings back what those three changed, but not deleted versions.',
         'To erase every size at once, use Clear all data in the three dots menu. It saves no version, and Undo cannot bring anything back.',
@@ -280,8 +279,8 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
       steps: [
         'Tab moves between buttons and fabrics. Enter or Space picks the one in focus.',
         wide
-          ? 'Escape lets go of the fabric you are painting with, the piece you are looking at, and the block you picked up. It also closes an open sheet, the Save & export menu and the build sheet preview, cancels a drag, and ends the Hide a fabric mode.'
-          : 'Escape lets go of the fabric you are painting with, the piece you are looking at, and the block you picked up. It also closes an open sheet and the build sheet preview, cancels a drag, and ends the Hide a fabric mode.',
+          ? 'Escape lets go of the fabric you are painting with, the piece you are looking at, and the block you picked up. It also closes an open sheet, the Save & export menu and the build sheet preview, cancels a drag, and ends the Exclude a fabric mode.'
+          : 'Escape lets go of the fabric you are painting with, the piece you are looking at, and the block you picked up. It also closes an open sheet and the build sheet preview, cancels a drag, and ends the Exclude a fabric mode.',
         ...(wide ? ['In the Save & export menu, the up and down arrows, Home and End move between items.'] : []),
         'Ctrl+Z or Cmd+Z undoes. Shift+Ctrl+Z, Shift+Cmd+Z, Ctrl+Y or Cmd+Y redoes. They do not work while you type a version name or while the build sheet preview is open.',
       ],

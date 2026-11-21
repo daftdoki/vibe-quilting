@@ -119,7 +119,8 @@ describe('writer', () => {
     expect(p.pattern?.id).toBe('stacks');
     expect(p.sizes.throw).toMatchObject({ name: 'Throw', cols: 4, rows: 4 });
     expect(p.sizes.throw?.versions).toHaveLength(2);
-    expect(p.sizes.throw?.guide).toEqual({ step: 'shuffle', block: 0 });
+    // filled() stores the retired 'shuffle' step, as an earlier build did. It reads back as 'fabrics'.
+    expect(p.sizes.throw?.guide).toEqual({ step: 'fabrics', block: 0 });
     expect(p.collection?.fabrics['d0-c0']).toMatchObject({ sku: 'd0-c0' });
     expect(JSON.stringify(b)).not.toContain('other-app');
   });
@@ -626,5 +627,22 @@ describe('hidden fabrics', () => {
     const s = withList();
     clearAllData(s);
     expect(s.getItem('vq:v1:excluded:p')).toBeNull();
+  });
+});
+
+describe('retired guide steps', () => {
+  it('a data file with the old Mix the order step imports it as Pick your fabrics', () => {
+    const b = buildBackup(filled(), NOW, ctx);
+    const old = { ...b, projects: { p: { ...b.projects.p!, sizes: { ...b.projects.p!.sizes, throw: { ...b.projects.p!.sizes.throw!, guide: { step: 'shuffle', block: 0 } } } } } };
+    const { dest } = applyText(JSON.stringify(old));
+    expect(readGuideFrom(dest, 'p', 'throw')).toEqual({ step: 'fabrics', block: 0 });
+  });
+
+  it('a quilt file with the old step keeps the entry too', () => {
+    const q = buildQuiltBackup(filled(), NOW, ctx, 'p', 'throw');
+    const size = q.projects.p!.sizes.throw!;
+    const partial = { ...size, design: setLineupSlot(size.design!, 0, null), guide: { step: 'shuffle', block: 0 } };
+    const r = ok(JSON.stringify({ ...q, projects: { p: { sizes: { throw: partial } } } }));
+    expect(r.file.projects[0]?.sizes[0]?.guide).toEqual({ step: 'fabrics', block: 0 });
   });
 });

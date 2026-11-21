@@ -46,8 +46,8 @@ export function FabricTray({
               type="button"
               className={`swatch${active ? ' is-active' : ''}${out ? ' is-excluded' : ''}`}
               aria-pressed={hideMode ? out : active}
-              aria-label={out ? `${f.name}, hidden` : hideMode ? `${f.name}, showing` : `${f.name}, ${count} ${noun(count)}`}
-              title={out ? `${f.name}, hidden` : f.name}
+              aria-label={out ? `${f.name}, excluded` : hideMode ? `${f.name}, included` : `${f.name}, ${count} ${noun(count)}`}
+              title={out ? `${f.name}, excluded` : f.name}
               {...dragProps(f)}
               onClick={() => {
                 if (takeClickSuppression()) return;
@@ -82,7 +82,7 @@ export function FabricTray({
                 <span className="swatch-name" aria-hidden="true">
                   <span>{f.design}</span>
                   <span>{f.colorway}</span>
-                  {out && <span className="swatch-out-label">Hidden</span>}
+                  {out && <span className="swatch-out-label">Excluded</span>}
                 </span>
               )}
             </button>

@@ -14,8 +14,8 @@ import type { FabricCollection, ProjectDef } from '../../core/types';
 import type { DesignState } from '../useDesign';
 import { REASONS, type CheckpointUpdate } from '../versions/useVersions';
 
-/** Steps shown in the "Step 2 of 5" counter. The closing step is not counted. */
-export const COUNTED_STEPS: readonly GuideStepId[] = GUIDE_STEPS.filter((s) => s !== 'done');
+/** Steps shown in the "Step 2 of 4" counter. The opening overview and the closing step are not counted. */
+export const COUNTED_STEPS: readonly GuideStepId[] = GUIDE_STEPS.filter((s) => s !== 'intro' && s !== 'done');
 
 /** What the rest of the app does while a guide step is showing. */
 export interface GuideControl {
@@ -28,9 +28,9 @@ export interface GuideControl {
 }
 
 const CONTROLS: Record<GuideStepId, GuideControl> = {
+  intro: { mode: 'none', tray: 'hidden', focusCell: null },
   size: { mode: 'none', tray: 'hidden', focusCell: null },
   fabrics: { mode: 'none', tray: 'fill', focusCell: null },
-  shuffle: { mode: 'none', tray: 'hidden', focusCell: null },
   blocks: { mode: 'blocks', tray: 'hidden', focusCell: null },
   touchups: { mode: 'fabrics', tray: 'paint', focusCell: null },
   done: { mode: 'none', tray: 'hidden', focusCell: null },
@@ -96,11 +96,11 @@ export interface Guide {
   skipTouchups(): void;
   /** Close the guide and leave the design as it is. */
   exit(): void;
-  /** Start from the size step. The caller empties the design first. */
+  /** Start from the opening overview. The caller empties the design first. */
   start(): void;
   /**
    * Open the guide again on the current quilt without changing it. It opens at
-   * the fat quarters step when a slot is empty, otherwise at the shuffle step.
+   * the fat quarters step when a slot is empty, otherwise at the blocks step.
    */
   resume(): void;
 }
@@ -124,7 +124,8 @@ export function useGuide(
       const saved = loadGuide(project.id, sizeId);
       if (saved === 'done') return null;
       if (saved) return saved;
-      return wasCreated(sizeId) ? { step: 'size', block: 0 } : null;
+      // A size opened for the first time starts with the overview.
+      return wasCreated(sizeId) ? { step: 'intro', block: 0 } : null;
     },
     [project.id, wasCreated],
   );
@@ -288,7 +289,7 @@ export function useGuide(
     },
     fillRestAndNext: () => {
       checkpointUpdate(REASONS.fillRest, (d) => fillEmptySlots(pattern, collection, d));
-      goTo('shuffle');
+      goTo('blocks');
     },
     dismissFillOffer: () => setState((st) => ({ ...st, offerFill: false })),
     setHiding,
@@ -300,7 +301,7 @@ export function useGuide(
     start: () =>
       setState((st) => ({
         ...st,
-        progress: { step: 'size', block: 0 },
+        progress: { step: 'intro', block: 0 },
         pickedSlot: null,
         offerFill: false,
         conflictSize: null,
@@ -309,7 +310,7 @@ export function useGuide(
     resume: () =>
       setState((st) => ({
         ...st,
-        progress: { step: emptySlots > 0 ? 'fabrics' : 'shuffle', block: 0 },
+        progress: { step: emptySlots > 0 ? 'fabrics' : 'blocks', block: 0 },
         pickedSlot: null,
         offerFill: false,
         conflictSize: null,

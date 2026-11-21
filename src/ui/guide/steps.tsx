@@ -2,11 +2,13 @@
 import { useEffect, useRef } from 'react';
 import { getSize, setAllRotations } from '../../core/design';
 import type { Design, FabricDef, PatternDef } from '../../core/types';
+import type { GuideStepId } from '../../core/storage';
 import { inches, repeatNote } from '../format';
 import { quiltSizeInches } from '../../core/layout';
 import { Icon } from '../Icon';
 import { REASONS, type CheckpointUpdate } from '../versions/useVersions';
-import type { Guide } from './useGuide';
+import { COUNTED_STEPS, type Guide } from './useGuide';
+import { TITLES } from './titles';
 
 export function SizeStep({ guide, pattern, design }: { guide: Guide; pattern: PatternDef; design: Design }) {
   return (
@@ -61,6 +63,7 @@ export function FabricsStep({
   fabricCount,
   excludedCount,
   repeatBlocks,
+  onRearrange,
 }: {
   guide: Guide;
   design: Design;
@@ -70,6 +73,8 @@ export function FabricsStep({
   excludedCount: number;
   /** Blocks where her picks put one fabric twice, or null when that cannot be avoided. */
   repeatBlocks: number | null;
+  /** Shuffle the stack order, keeping the same fabrics. */
+  onRearrange(): void;
 }) {
   const listRef = useRef<HTMLOListElement>(null);
   const target = guide.targetSlot;
@@ -94,17 +99,17 @@ export function FabricsStep({
   // to do, how many are hidden, and the way out.
   if (guide.hiding) {
     return (
-      <div className="guide-hide" role="group" aria-label="Hide fabrics">
+      <div className="guide-hide" role="group" aria-label="Exclude fabrics">
         <p className="guide-hide-count" role="status">
           {excludedCount === 0
-            ? 'No fabrics are hidden yet.'
+            ? 'No fabrics are excluded yet.'
             : excludedCount === 1
-              ? '1 fabric is hidden.'
-              : `${excludedCount} fabrics are hidden.`}
+              ? '1 fabric is excluded.'
+              : `${excludedCount} fabrics are excluded.`}
         </p>
         <button type="button" className="btn btn-primary guide-hide-done" onClick={() => guide.setHiding(false)}>
           <Icon name="check" size={20} />
-          Done hiding
+          Done
         </button>
       </div>
     );
@@ -166,6 +171,12 @@ export function FabricsStep({
               Fill the rest for me
             </button>
           )}
+          {n - guide.emptySlots >= 2 && (
+            <button type="button" className="btn btn-small" onClick={onRearrange}>
+              <Icon name="shuffle" size={18} />
+              Rearrange
+            </button>
+          )}
           {guide.emptySlots < n && (
             <button
               type="button"
@@ -179,7 +190,7 @@ export function FabricsStep({
           )}
           <button type="button" className="btn btn-small btn-ghost" onClick={() => guide.setHiding(true)}>
             <Icon name="ban" size={18} />
-            Hide a fabric
+            Exclude a fabric
           </button>
           {guide.slotPicked && targetFilled && target !== null && (
             <button
@@ -203,7 +214,7 @@ export function FabricsStep({
 
       {excludedCount > 0 && (
         <p className="guide-note guide-hidden-note">
-          {excludedCount === 1 ? '1 fabric is hidden.' : `${excludedCount} fabrics are hidden.`}{' '}
+          {excludedCount === 1 ? '1 fabric is excluded.' : `${excludedCount} fabrics are excluded.`}{' '}
           <button type="button" className="btn btn-small btn-text" onClick={() => guide.setHiding(true)}>
             {excludedCount === 1 ? 'Show it' : 'Show them'}
           </button>
@@ -234,10 +245,11 @@ export function FabricsHow({
     <div className="guide-how" id={id}>
       <ul className="guide-how-list">
         {cutLine && <li>{cutLine}</li>}
-        <li>Pick at random replaces every pick with a new mix. Tap it again for a different one.</li>
+        <li>Pick at random chooses fabrics for you and replaces every pick. Tap it again for a different mix.</li>
+        <li>Rearrange keeps the fabrics you have and only changes where each one lands. Use it after picking by hand.</li>
         <li>Fill the rest for me keeps the fabrics you picked and fills only the empty fat quarters.</li>
         <li>Clear picks empties every fat quarter so you can pick again.</li>
-        <li>Hide a fabric keeps a fabric you do not want out of Pick at random and Fill the rest for me.</li>
+        <li>Exclude a fabric keeps a fabric you do not want out of Pick at random and Fill the rest for me.</li>
         {slotCount > inUse && (
           <li>
             {excludedCount > 0
@@ -249,31 +261,6 @@ export function FabricsHow({
       <button type="button" className="btn btn-small btn-ghost" onClick={onExplain}>
         <Icon name="help" size={18} />
         See how a fat quarter is used
-      </button>
-    </div>
-  );
-}
-
-export function ShuffleStep({
-  onShuffle,
-  disabled,
-  onUndo,
-  canUndo,
-}: {
-  onShuffle(): void;
-  disabled: boolean;
-  onUndo(): void;
-  canUndo: boolean;
-}) {
-  return (
-    <div className="guide-row guide-row-center">
-      <button type="button" className="btn btn-shuffle guide-shuffle" onClick={onShuffle} disabled={disabled}>
-        <Icon name="shuffle" />
-        Shuffle
-      </button>
-      <button type="button" className="btn guide-undo" onClick={onUndo} disabled={!canUndo}>
-        <Icon name="undo" />
-        Undo
       </button>
     </div>
   );
@@ -431,6 +418,38 @@ export function DoneStep({
           <Icon name="help" size={18} />
           How to use
         </button>
+      </div>
+    </>
+  );
+}
+
+/** One plain line for each counted step on the opening overview. */
+const STEP_LINES: Partial<Record<GuideStepId, string>> = {
+  size: 'Choose how big the quilt will be.',
+  fabrics: 'Choose each fabric yourself, or let the app pick for you.',
+  blocks: 'Arrange the blocks until you like the layout.',
+  touchups: 'Change single pieces if you want to. You can skip this.',
+};
+
+/** The opening overview: the steps in order, then where to get help. */
+export function IntroStep() {
+  return (
+    <>
+      <ol className="guide-intro-steps">
+        {COUNTED_STEPS.map((s) => (
+          <li key={s}>
+            <strong>{TITLES[s]}</strong>
+            {STEP_LINES[s] && <span>{STEP_LINES[s]}</span>}
+          </li>
+        ))}
+      </ol>
+      <div className="guide-intro-help">
+        <h3>Where to get help</h3>
+        <ul>
+          <li>Tap the ? button on the quilt at any time for the full How to use guide.</li>
+          <li>In {TITLES.fabrics}, How it works explains that step.</li>
+          <li>Exit guide closes the guide. Resume the guide, in the three dots menu, brings it back.</li>
+        </ul>
       </div>
     </>
   );

@@ -19,9 +19,16 @@ const guideKey = (projectId: string, sizeId: string) => `${PREFIX}guide:${projec
 const versionsKey = (projectId: string, sizeId: string) => `${PREFIX}versions:${projectId}:${sizeId}`;
 const excludedKey = (projectId: string) => `${PREFIX}excluded:${projectId}`;
 
-/** Steps of the guided setup, in order. */
-export const GUIDE_STEPS = ['size', 'fabrics', 'shuffle', 'blocks', 'touchups', 'done'] as const;
+/** Steps of the guided setup, in order. 'intro' is the overview shown before the first counted step. */
+export const GUIDE_STEPS = ['intro', 'size', 'fabrics', 'blocks', 'touchups', 'done'] as const;
 export type GuideStepId = (typeof GUIDE_STEPS)[number];
+
+/**
+ * Steps that earlier builds had and this one folded into another. Stored
+ * progress and data files can still name them. The old Mix the order step
+ * ('shuffle') is now part of Pick your fabrics.
+ */
+const RETIRED_STEPS: Readonly<Record<string, GuideStepId>> = { shuffle: 'fabrics' };
 
 /**
  * Where the guide stands for one size. `block` is the cell index for the
@@ -139,6 +146,8 @@ export function parseGuideProgress(v: unknown): GuideProgress | null {
   if (!isRecord(v)) return null;
   const { step, block } = v;
   if (typeof block !== 'number' || !Number.isInteger(block) || block < 0) return null;
+  const retired = typeof step === 'string' && Object.hasOwn(RETIRED_STEPS, step) ? RETIRED_STEPS[step] : undefined;
+  if (retired) return { step: retired, block: 0 };
   const known = GUIDE_STEPS.find((x) => x === step);
   return known ? { step: known, block } : null;
 }

@@ -28,6 +28,8 @@ interface Props {
   onExport(): void;
   onSaveQuilt(): void;
   canSaveQuilt: boolean;
+  onPrint(): void;
+  canPrint: boolean;
   onHelp(): void;
   /** Opens the picture of how a fat quarter is cut and shuffled. */
   onExplainFatQuarter(): void;
@@ -67,7 +69,7 @@ function instruction(step: GuideStepId, p: Props): string {
         : `${head} Tap a fabric, then tap a piece to change it.`;
     }
     case 'done':
-      return 'Export a picture of it, save it to a file, or keep editing. Your work saves on this device as you go. A quilt file opens again here or on another device.';
+      return 'Export a picture of it, save it to a file, print a build sheet to cut and sew from, or keep editing. Your work saves on this device as you go. A quilt file opens again here or on another device.';
   }
 }
 
@@ -165,6 +167,8 @@ export function GuideCard(props: Props) {
           onExport={onExport}
           onSaveQuilt={props.onSaveQuilt}
           canSaveQuilt={props.canSaveQuilt}
+          onPrint={props.onPrint}
+          canPrint={props.canPrint}
           onHelp={onHelp}
           onKeepEditing={guide.exit}
         />

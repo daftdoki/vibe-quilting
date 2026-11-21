@@ -62,6 +62,12 @@ export interface PatternDef {
   assign(blockId: number, pieceIndex: number, lineupLength: number): number;
   /** Rotation the pattern suggests for the block at a grid cell. */
   defaultRotation(col: number, row: number): Rotation;
+  /**
+   * Short steps printed on the build sheet before the stack order: how to
+   * stack the numbered fat quarters and which block comes off first. In our
+   * own words, never the pattern's text.
+   */
+  buildNotes?: readonly string[];
 }
 
 export interface FabricDef {

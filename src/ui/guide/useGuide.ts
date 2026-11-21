@@ -8,7 +8,7 @@
  * undo and redo never leave the guide pointing at stale state.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { createEmptyDesign, fillEmptySlots, isEmptyDesign, setLineupSlot } from '../../core/design';
+import { createEmptyDesign, fillEmptySlots, isEmptyDesign, randomLineup, setLineupSlot } from '../../core/design';
 import { GUIDE_STEPS, loadGuide, saveGuide, type GuideStepId } from '../../core/storage';
 import type { ProjectDef } from '../../core/types';
 import type { DesignState } from '../useDesign';
@@ -77,6 +77,10 @@ export interface Guide {
   fillFromTray(fabricId: string): void;
   clearSlot(slot: number): void;
   fillRest(): void;
+  /** Empty every fat quarter slot. Hand-placed pieces stay. */
+  clearPicks(): void;
+  /** Replace every fat quarter with a random selection of fabrics. Hand-placed pieces stay. */
+  randomPicks(): void;
   /** Fill the empty slots and go to the next step. */
   fillRestAndNext(): void;
   dismissFillOffer(): void;
@@ -233,6 +237,15 @@ export function useGuide(project: ProjectDef, ds: DesignState, checkpointUpdate:
     },
     fillRest: () => {
       checkpointUpdate(REASONS.fillRest, (d) => fillEmptySlots(pattern, collection, d));
+      setState((st) => ({ ...st, pickedSlot: null, offerFill: false }));
+    },
+    clearPicks: () => {
+      checkpointUpdate(REASONS.clearPicks, (d) => ({ ...d, lineup: d.lineup.map(() => null) }));
+      setState((st) => ({ ...st, pickedSlot: null, offerFill: false }));
+    },
+    randomPicks: () => {
+      const seed = (Math.random() * 2 ** 32) >>> 0;
+      checkpointUpdate(REASONS.randomPicks, (d) => randomLineup(pattern, collection, d, seed));
       setState((st) => ({ ...st, pickedSlot: null, offerFill: false }));
     },
     fillRestAndNext: () => {

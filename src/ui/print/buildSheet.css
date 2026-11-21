@@ -1,0 +1,454 @@
+/*
+ * Build sheet. Black line art on white, sized in points and millimetres so
+ * the screen preview and the printout match. Text rule: body text 12pt or
+ * more, tables 12.5pt, headings 18 to 22pt, so it reads easily on paper.
+ *
+ * Every page fits the smaller printable box of Letter and A4 with 12mm
+ * margins: 186mm wide by 255mm tall. No paper size is forced.
+ */
+
+@page {
+  margin: 12mm;
+}
+
+/* Preview overlay (screen only) */
+
+.bs-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  background: var(--mat);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 16px;
+}
+
+.bs-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding: calc(10px + var(--safe-t)) calc(14px + var(--safe-r)) 10px calc(14px + var(--safe-l));
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.bs-toolbar-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.bs-size button {
+  min-width: 0;
+  white-space: normal;
+  line-height: 1.2;
+}
+
+.bs-toolbar-note {
+  flex: 1 1 240px;
+  margin: 0;
+  font-size: 15px;
+  color: var(--ink-dim);
+}
+
+.bs-close {
+  margin-left: auto;
+}
+
+.bs-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 16px 12px calc(32px + var(--safe-b));
+}
+
+@media (min-width: 900px) {
+  .bs-overlay {
+    font-size: 17px;
+  }
+
+  .bs-toolbar-note {
+    font-size: 16px;
+  }
+}
+
+/* Paper */
+
+.bs-page {
+  width: 210mm;
+  min-height: 279mm;
+  margin: 0 auto 16px;
+  padding: 12mm;
+  background: #fff;
+  color: #000;
+  color-scheme: light;
+  font-family: var(--font);
+  font-size: 12pt;
+  line-height: 1.35;
+  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.45);
+}
+
+.bs-page h1,
+.bs-page h2,
+.bs-page h3,
+.bs-page p,
+.bs-page ol,
+.bs-page ul,
+.bs-page dl {
+  margin: 0;
+}
+
+.bs-page h1 {
+  font-size: 22pt;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.bs-page h2 {
+  margin-bottom: 3mm;
+  font-size: 18pt;
+  font-weight: 800;
+  line-height: 1.2;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+.bs-page h3 {
+  font-size: 13pt;
+  font-weight: 750;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+.bs-running {
+  margin-bottom: 4mm !important;
+  padding-bottom: 1.5mm;
+  border-bottom: 0.5pt solid #000;
+  font-size: 12pt;
+}
+
+.bs-head {
+  display: grid;
+  gap: 3mm;
+  margin-bottom: 7mm;
+}
+
+.bs-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 1mm 6mm;
+  font-size: 13pt;
+}
+
+.bs-facts dt {
+  font-weight: 700;
+}
+
+.bs-facts dd {
+  margin: 0;
+}
+
+.bs-lead {
+  padding: 2.5mm 3mm;
+  border: 1pt solid #000;
+  font-size: 13pt;
+  font-weight: 700;
+}
+
+.bs-section {
+  margin-bottom: 7mm;
+}
+
+.bs-section > p {
+  margin-top: 2mm;
+}
+
+.bs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5pt;
+}
+
+.bs-table th,
+.bs-table td {
+  padding: 1.6mm 2mm;
+  border-bottom: 0.5pt solid #000;
+  text-align: left;
+  vertical-align: top;
+}
+
+.bs-table thead th {
+  border-bottom: 1pt solid #000;
+  font-weight: 750;
+}
+
+.bs-table tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.bs-table thead {
+  display: table-header-group;
+}
+
+.bs-no {
+  width: 12mm;
+  font-weight: 800;
+}
+
+.bs-cell-note {
+  display: block;
+  font-size: 12pt;
+}
+
+.bs-have {
+  width: 18mm;
+}
+
+.bs-tick-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.5mm;
+  font-size: 12pt;
+}
+
+.bs-tick {
+  display: inline-block;
+  width: 5mm;
+  height: 5mm;
+  border: 1pt solid #000;
+}
+
+.bs-box {
+  margin-top: 4mm;
+  padding: 3mm 4mm;
+  border: 1pt solid #000;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.bs-box p {
+  margin: 1mm 0 2mm;
+}
+
+.bs-box ul {
+  padding-left: 5mm;
+}
+
+.bs-box li + li {
+  margin-top: 1mm;
+}
+
+.bs-empty-note {
+  margin-top: 3mm !important;
+}
+
+.bs-stacking {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.bs-steps {
+  display: grid;
+  gap: 1.5mm;
+  padding-left: 6mm;
+}
+
+.bs-stacking h3 {
+  margin-top: 4mm;
+  margin-bottom: 2mm;
+}
+
+/* Two columns that read down, then across. A grid prints the same in every browser, which CSS columns do not. */
+.bs-stack {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 8mm;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5pt;
+}
+
+.bs-stack li {
+  padding: 0.8mm 0;
+  border-bottom: 0.5pt solid #000;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Block cards */
+
+.bs-section-head {
+  margin-bottom: 4mm;
+}
+
+.bs-section-head p {
+  margin-top: -1mm;
+}
+
+.bs-card-grid {
+  display: grid;
+  justify-items: center;
+}
+
+.bs-cards-large .bs-card-grid {
+  gap: 5mm 6mm;
+}
+
+.bs-cards-compact .bs-card-grid {
+  gap: 3mm 4mm;
+}
+
+.bs-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 2mm 2mm 1mm;
+  border: 0.5pt solid #000;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.bs-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 1.5mm;
+}
+
+.bs-cards-large .bs-card-head h3 {
+  font-size: 18pt;
+}
+
+.bs-cards-compact .bs-card-head h3 {
+  font-size: 15pt;
+}
+
+.bs-card-foot {
+  width: 100%;
+  min-height: 1.35em;
+  margin-top: 1mm !important;
+  font-size: 12pt;
+  text-align: center;
+}
+
+.bs-draw {
+  display: block;
+  flex: none;
+  overflow: visible;
+}
+
+.bs-draw text {
+  fill: #000;
+  font-family: var(--font);
+}
+
+.bs-num {
+  font-weight: 800;
+}
+
+.bs-letter {
+  font-weight: 600;
+}
+
+/* Layout map */
+
+.bs-map {
+  margin: 2mm 0 3mm;
+}
+
+.bs-map-num {
+  font-weight: 800;
+  stroke: #fff;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  paint-order: stroke;
+}
+
+.bs-map-letter {
+  font-weight: 700;
+  stroke: #fff;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  paint-order: stroke;
+}
+
+.bs-row-label {
+  font-weight: 700;
+}
+
+.bs-map-note {
+  font-size: 13pt;
+}
+
+/* Print: only the pages, flowing one after another. */
+@media print {
+  html.has-build-sheet,
+  html.has-build-sheet body,
+  html.has-build-sheet #root,
+  html.has-build-sheet .app {
+    position: static;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    background: #fff;
+    color: #000;
+    color-scheme: light;
+  }
+
+  html.has-build-sheet #root,
+  html.has-build-sheet dialog {
+    display: none !important;
+  }
+
+  html.has-build-sheet .bs-overlay {
+    position: static;
+    display: block;
+    height: auto;
+    overflow: visible;
+    background: none;
+    color: #000;
+  }
+
+  .bs-toolbar {
+    display: none !important;
+  }
+
+  .bs-scroll {
+    display: block;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .bs-pages {
+    zoom: 1 !important;
+  }
+
+  /* A hair of side padding keeps the outer borders inside the printable area. */
+  .bs-page {
+    width: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0 0.5mm;
+    box-sizing: border-box;
+    box-shadow: none;
+  }
+
+  .bs-changes {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .bs-page + .bs-page {
+    break-before: page;
+    page-break-before: always;
+  }
+}

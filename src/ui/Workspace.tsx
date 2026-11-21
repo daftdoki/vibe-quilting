@@ -32,6 +32,8 @@ import { sizeInches } from './format';
 import { Icon } from './Icon';
 import { imageCache } from './imageCache';
 import { Lineup } from './Lineup';
+import { BuildSheetOverlay } from './print/BuildSheet';
+import { SaveMenu, type MenuAction } from './SaveMenu';
 import { QuiltCanvas, type QuiltCanvasHandle, type QuiltTap } from './QuiltCanvas';
 import { buildScene, type Highlights } from './renderQuilt';
 import { Sheet } from './Sheet';
@@ -86,6 +88,12 @@ export function Workspace({ project }: { project: ProjectDef }) {
   /** Slot picked in the fat quarter stack outside the guide. */
   const [lineupSlot, setLineupSlotPick] = useState<number | null>(null);
   const canvasRef = useRef<QuiltCanvasHandle>(null);
+  const moreBtnRef = useRef<HTMLButtonElement>(null);
+  const saveMenuBtnRef = useRef<HTMLButtonElement>(null);
+  // The #build-sheet hash keeps the build sheet open across a reload, unless the quilt is empty.
+  const [printOpen, setPrintOpen] = useState(
+    () => location.hash === '#build-sheet' && !isEmptyDesign(ds.design),
+  );
 
   // The guide decides what taps do while it runs. Otherwise the Fabrics/Blocks toggle does.
   const tapMode: Mode | 'none' = guideControl?.mode ?? mode;
@@ -309,6 +317,30 @@ export function Workspace({ project }: { project: ProjectDef }) {
     void data.saveQuilt(project.id, design);
   };
 
+  // The build sheet. The #build-sheet hash keeps it open across a reload.
+  const canPrint = !isEmptyDesign(design);
+  const canPrintRef = useRef(canPrint);
+  canPrintRef.current = canPrint;
+  const openPrint = useCallback(() => {
+    setSheet(null);
+    setPrintOpen(true);
+  }, []);
+  const closePrint = useCallback(() => setPrintOpen(false), []);
+  useEffect(() => {
+    const sync = () => {
+      if (location.hash !== '#build-sheet') setPrintOpen(false);
+      else if (canPrintRef.current) openPrint();
+    };
+    window.addEventListener('hashchange', sync);
+    return () => window.removeEventListener('hashchange', sync);
+    // Hash changes only. The first open comes from the initial state.
+  }, []);
+  useEffect(() => {
+    const want = printOpen ? '#build-sheet' : '';
+    if (location.hash === want || (!want && location.hash === '')) return;
+    history.replaceState(history.state, '', `${location.pathname}${location.search}${want}`);
+  }, [printOpen]);
+
   const doExport = async () => {
     if (exporting) return;
     setExporting(true);
@@ -328,6 +360,8 @@ export function Workspace({ project }: { project: ProjectDef }) {
   // Keyboard shortcuts.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // The build sheet covers the quilt, and a menu may have handled the key already.
+      if (printOpen || e.defaultPrevented) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
       const mod = e.metaKey || e.ctrlKey;
@@ -353,7 +387,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
       window.removeEventListener('keydown', onKey);
       document.removeEventListener('gesturestart', noPinch);
     };
-  }, [doUndo, doRedo]);
+  }, [doUndo, doRedo, printOpen]);
 
   const activeFabric = activeId ? fabricsById.get(activeId) : undefined;
   const infoPiece = infoKey ? pieces.find((p) => p.key === infoKey) : undefined;
@@ -537,12 +571,55 @@ export function Workspace({ project }: { project: ProjectDef }) {
       onExport={doExport}
       onSaveQuilt={saveQuiltFile}
       canSaveQuilt={canSaveQuilt}
+      onPrint={openPrint}
+      canPrint={canPrint}
       onHelp={() => setSheet('help')}
       onExplainFatQuarter={() => setSheet('fat-quarter')}
       onShuffle={shuffle}
     />
   ) : null;
   const showTray = trayRole !== 'hidden';
+
+  // Save and export actions: the Save & export menu on wide screens, a group in the three dots menu on phones.
+  const saveItems: MenuAction[] = [
+    {
+      key: 'save',
+      icon: 'file',
+      label: 'Save quilt file',
+      description: canSaveQuilt
+        ? 'This quilt and its versions, to open again here or on another device.'
+        : 'Nothing to save yet.',
+      disabled: !canSaveQuilt,
+      onSelect: saveQuiltFile,
+    },
+    {
+      key: 'open',
+      icon: 'fileDown',
+      label: 'Open a quilt file',
+      description: 'Load a quilt file or a full export you saved before.',
+      onSelect: () => {
+        setSheet(null);
+        data.pickFile();
+      },
+    },
+    {
+      key: 'png',
+      icon: 'download',
+      label: exporting ? 'Exporting' : 'Export PNG',
+      description: 'A picture of this quilt to share.',
+      disabled: exporting,
+      dividerBefore: true,
+      onSelect: () => void doExport(),
+    },
+    {
+      key: 'print',
+      icon: 'print',
+      label: 'Print build sheet',
+      description: canPrint ? 'A black and white reference for cutting and sewing.' : 'Nothing to print yet.',
+      disabled: !canPrint,
+      onSelect: openPrint,
+    },
+  ];
 
   return (
     <div className={`app ${wide ? 'is-wide' : 'is-narrow'} mode-${tapMode}${guide.active ? ' is-guided' : ''}`}>
@@ -567,7 +644,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
             <>
               <button
                 type="button"
-                className="btn btn-ghost topbar-btn topbar-btn-wide topbar-versions"
+                className="btn btn-ghost topbar-btn topbar-versions"
                 onClick={() => setSheet('versions')}
                 aria-label="Versions"
                 title="Versions"
@@ -575,35 +652,19 @@ export function Workspace({ project }: { project: ProjectDef }) {
                 <Icon name="versions" />
                 <span className="btn-label">Versions</span>
               </button>
-              <button
-                type="button"
-                className="btn btn-ghost topbar-btn topbar-btn-wide"
-                onClick={doExport}
-                disabled={exporting}
-                aria-label={exporting ? 'Exporting' : 'Export PNG'}
-                title="Export PNG"
-              >
-                <Icon name="download" />
-                <span className="btn-label">{exporting ? 'Exporting' : 'Export PNG'}</span>
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost topbar-btn topbar-btn-save"
-                onClick={saveQuiltFile}
-                disabled={!canSaveQuilt}
-                aria-label="Save quilt file"
-                title={canSaveQuilt ? 'Save quilt file' : 'Nothing to save yet'}
-              >
-                <Icon name="file" />
-                <span className="btn-label">Save quilt file</span>
-              </button>
+              <SaveMenu items={saveItems} buttonRef={saveMenuBtnRef} />
             </>
           )}
-          <button type="button" className="icon-btn" onClick={() => {
+          <button
+            ref={moreBtnRef}
+            type="button"
+            className="icon-btn"
+            onClick={() => {
               data.refresh();
               setSheet('more');
             }}
-            aria-label="More actions">
+            aria-label="More actions"
+          >
             <Icon name="more" />
           </button>
         </div>
@@ -735,28 +796,25 @@ export function Workspace({ project }: { project: ProjectDef }) {
               </span>
             </button>
           </li>
-          <li>
-            <button type="button" className="action" onClick={doExport} disabled={exporting}>
-              <Icon name="download" />
-              <span>
-                <strong>Export PNG</strong>
-                <span>Save or share a picture of this quilt.</span>
-              </span>
-            </button>
-          </li>
-          <li>
-            <button type="button" className="action" onClick={saveQuiltFile} disabled={!canSaveQuilt}>
-              <Icon name="file" />
-              <span>
-                <strong>Save quilt file</strong>
-                <span>
-                  {canSaveQuilt
-                    ? "Save this size's quilt and its versions to a file you can open again."
-                    : 'Nothing to save yet.'}
-                </span>
-              </span>
-            </button>
-          </li>
+          {!wide && (
+            <>
+              <li className="action-group" role="presentation">
+                <h3 className="action-group-title">Save and export</h3>
+              </li>
+              {saveItems.map((item) => (
+                <li key={item.key} className={item.dividerBefore ? 'action-divider' : undefined}>
+                  <button type="button" className="action" onClick={item.onSelect} disabled={item.disabled}>
+                    <Icon name={item.icon} />
+                    <span>
+                      <strong>{item.label}</strong>
+                      <span>{item.description}</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+              <li className="action-group" role="presentation" aria-hidden="true" />
+            </>
+          )}
           <li>
             <button
               type="button"
@@ -990,6 +1048,14 @@ export function Workspace({ project }: { project: ProjectDef }) {
         </div>
       </Sheet>
       <DataSheets data={data} />
+      {printOpen && (
+        <BuildSheetOverlay
+          project={project}
+          design={design}
+          onClose={closePrint}
+          fallbackFocus={wide ? saveMenuBtnRef : moreBtnRef}
+        />
+      )}
     </div>
   );
 }

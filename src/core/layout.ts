@@ -44,7 +44,7 @@ export function hash01(
 }
 
 /** Rotate a block-local point clockwise (y down) about the block center. */
-function rotatePoint(p: Point, rotation: Rotation, cx: number, cy: number): Point {
+export function rotatePoint(p: Point, rotation: Rotation, cx: number, cy: number): Point {
   const dx = p[0] - cx;
   const dy = p[1] - cy;
   switch (rotation) {

@@ -21,6 +21,8 @@ export const REASONS = {
   turnPattern: 'Before turn every other block',
   turnNone: 'Before all the same way up',
   fillRest: 'Before fill the rest',
+  clearPicks: 'Before clearing picks',
+  randomPicks: 'Before random picks',
   startOver: 'Before starting fresh',
   restore: 'Before restoring a version',
 } as const;

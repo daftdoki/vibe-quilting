@@ -154,6 +154,32 @@ export function fillEmptySlots(
   return { ...design, lineup: repairLineup(lineup, filledHere) };
 }
 
+/**
+ * Replace every slot with a random selection of fabrics, deterministic per
+ * seed. The fabric order is shuffled first, then the same greedy fill as
+ * `defaultLineup` takes from it, so a size with fewer slots than fabrics gets
+ * a random subset and a bigger size uses every fabric with repeats spaced
+ * out. The repeat repair from `shuffleLineup` runs last. Overrides stay.
+ */
+export function randomLineup(
+  pattern: PatternDef,
+  collection: FabricCollection,
+  design: Design,
+  seed: number,
+): Design {
+  const rand = seededRandom(seed);
+  const order = collection.fabrics.map((f) => f.id);
+  if (order.length === 0) return design;
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [order[i], order[j]] = [order[j]!, order[i]!];
+  }
+  const size = getSize(pattern, design.sizeId);
+  const lineup = new Array<string | null>(pattern.lineupLength(size)).fill(null);
+  const filled = fillNullSlots(lineup, order, designsOf(collection));
+  return { ...design, lineup: repairLineup(lineup, filled) };
+}
+
 /** Count of slot pairs holding the same fabric closer than the minimum gap. Empty slots never count. */
 function conflictCost(lineup: readonly (string | null)[]): number {
   const n = lineup.length;

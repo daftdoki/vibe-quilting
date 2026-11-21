@@ -59,4 +59,12 @@ export const stacks: PatternDef = {
   assign: (blockId, pieceIndex, n) => (blockId + pieceIndex) % n,
   // Every other block is turned upside down.
   defaultRotation: (col, row) => ((col + row) % 2 === 1 ? 180 : 0),
+  // With slot 0 on top, block k takes layer k of every shuffled stack, which
+  // is slot (k + p) mod n, the same as `assign`. So the k-th block off the
+  // stacks is block number k + 1.
+  buildNotes: [
+    'Lay the fat quarters in one pile in the order below, with number 1 on top, before you cut.',
+    'Cut the pile and shuffle the stacks the way the pattern shows.',
+    'The first block you take off the stacks is block 1, the next one is block 2, and so on.',
+  ],
 };

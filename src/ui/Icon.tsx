@@ -22,6 +22,7 @@ const PATHS = {
   fileUp: 'M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7l-4-4ZM14 3v4h4M12 17v-6M9.5 13.5 12 11l2.5 2.5',
   fileDown: 'M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7l-4-4ZM14 3v4h4M12 11v6M9.5 14.5 12 17l2.5-2.5',
   trash: 'M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13M10 11v5M14 11v5',
+  print: 'M7 9V3h10v6M7 17H5a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2M7 14h10v7H7Z',
   keyboard: 'M3 7h18v10H3ZM7 10.5h.01M11 10.5h.01M15 10.5h.01M8 14h8',
 } as const;
 

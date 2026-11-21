@@ -7,6 +7,7 @@ import {
   createEmptyDesign,
   defaultLineup,
   fillEmptySlots,
+  randomLineup,
   fabricFor,
   fabricUsage,
   repeatedFabricBlocks,
@@ -312,5 +313,44 @@ describe('repeatedFabricBlocks', () => {
   it('is null when the stack is shorter than a block', () => {
     const d = createDesign(stacks, collection, 'runner');
     expect(repeatedFabricBlocks(stacks, d.lineup, d.cells.length)).toBeNull();
+  });
+});
+
+describe('randomLineup', () => {
+  const crib = () => createEmptyDesign(stacks, 'crib');
+
+  it('is the same for the same seed and differs between seeds', () => {
+    expect(randomLineup(stacks, collection, crib(), 7)).toEqual(randomLineup(stacks, collection, crib(), 7));
+    expect(randomLineup(stacks, collection, crib(), 7).lineup).not.toEqual(
+      randomLineup(stacks, collection, crib(), 8).lineup,
+    );
+  });
+
+  it('picks a different subset of fabrics for a small size', () => {
+    const seen = new Set<string>();
+    for (let seed = 1; seed <= 6; seed++) {
+      const lineup = randomLineup(stacks, collection, crib(), seed).lineup;
+      expect(lineup).toHaveLength(9);
+      expect(new Set(lineup).size).toBe(9);
+      for (const id of lineup) seen.add(id!);
+    }
+    expect(seen.size).toBeGreaterThan(9);
+  });
+
+  it.each(['crib', 'throw', 'twin', 'full', 'queen', 'king'])('%s never repeats a fabric in a block', (id) => {
+    const size = getSize(stacks, id);
+    for (let seed = 1; seed <= 8; seed++) {
+      const d = randomLineup(stacks, collection, createEmptyDesign(stacks, id), seed * 7919);
+      expect(d.lineup.every((f) => f !== null)).toBe(true);
+      expect(repeatedFabricBlocks(stacks, d.lineup, size.cols * size.rows)).toBe(0);
+      if (d.lineup.length >= collection.fabrics.length) expect(new Set(d.lineup).size).toBe(collection.fabrics.length);
+    }
+  });
+
+  it('replaces every pick and leaves overrides alone', () => {
+    const start = { ...createDesign(stacks, collection, 'crib'), overrides: { '0:A': collection.fabrics[19]!.id } };
+    const d = randomLineup(stacks, collection, start, 3);
+    expect(d.overrides).toEqual(start.overrides);
+    expect(d.cells).toEqual(start.cells);
   });
 });

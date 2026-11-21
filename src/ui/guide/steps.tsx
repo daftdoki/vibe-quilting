@@ -138,10 +138,25 @@ export function FabricsStep({
         </div>
       ) : (
         <div className="guide-row">
+          <button type="button" className="btn btn-small" onClick={guide.randomPicks}>
+            <Icon name="shuffle" size={18} />
+            Pick at random
+          </button>
           {guide.emptySlots > 0 && (
             <button type="button" className="btn btn-small" onClick={guide.fillRest}>
               <Icon name="stack" size={18} />
               Fill the rest for me
+            </button>
+          )}
+          {guide.emptySlots < n && (
+            <button
+              type="button"
+              className="btn btn-small btn-ghost"
+              onClick={guide.clearPicks}
+              aria-label="Clear picks. Empty every fat quarter."
+            >
+              <Icon name="reset" size={18} />
+              Clear picks
             </button>
           )}
           {guide.slotPicked && targetFilled && target !== null && (
@@ -296,6 +311,8 @@ export function DoneStep({
   onExport,
   onSaveQuilt,
   canSaveQuilt,
+  onPrint,
+  canPrint,
   onHelp,
   onKeepEditing,
 }: {
@@ -304,6 +321,8 @@ export function DoneStep({
   onExport(): void;
   onSaveQuilt(): void;
   canSaveQuilt: boolean;
+  onPrint(): void;
+  canPrint: boolean;
   onHelp(): void;
   onKeepEditing(): void;
 }) {
@@ -311,13 +330,14 @@ export function DoneStep({
     ? [
         'The side panel has the fabrics and the fat quarter stack with Shuffle.',
         'Blocks, at the top, moves and turns blocks.',
-        'The three dots menu has Export PNG, Save quilt file and the resets.',
+        'Save & export, at the top, has Save quilt file, Open a quilt file, Export PNG and Print build sheet.',
+        'The three dots menu has the resets and your data.',
         'Save this as a version from Versions at the top or the three dots menu, then keep trying other layouts.',
       ]
     : [
         'Fat quarters, below the quilt, opens the stack and Shuffle.',
         'Blocks, next to it, moves and turns blocks.',
-        'The three dots menu has Export PNG, Save quilt file and the resets.',
+        'The three dots menu has Save quilt file, Open a quilt file, Export PNG and Print build sheet under Save and export, and the resets.',
         'Save this as a version from the three dots menu, then keep trying other layouts.',
       ];
   return (
@@ -330,6 +350,10 @@ export function DoneStep({
         <button type="button" className="btn btn-small" onClick={onSaveQuilt} disabled={!canSaveQuilt}>
           <Icon name="file" size={18} />
           Save quilt file
+        </button>
+        <button type="button" className="btn btn-small" onClick={onPrint} disabled={!canPrint}>
+          <Icon name="print" size={18} />
+          Print build sheet
         </button>
         <button type="button" className="btn btn-small" onClick={onKeepEditing}>
           Keep editing

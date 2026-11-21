@@ -61,6 +61,7 @@ export function FabricsStep({
   fabricCount,
   cutLine,
   repeatBlocks,
+  onExplain,
 }: {
   guide: Guide;
   design: Design;
@@ -68,6 +69,7 @@ export function FabricsStep({
   fabricCount: number;
   /** Blocks where her picks put one fabric twice, or null when that cannot be avoided. */
   repeatBlocks: number | null;
+  onExplain(): void;
   /** How a fat quarter is cut, worded from the pattern. */
   cutLine: string | null;
 }) {
@@ -163,6 +165,13 @@ export function FabricsStep({
       )}
 
       {cutLine && <p className="guide-note guide-cut">{cutLine}</p>}
+
+      <div className="guide-row">
+        <button type="button" className="btn btn-small btn-ghost" onClick={onExplain}>
+          <Icon name="help" size={18} />
+          See how a fat quarter is used
+        </button>
+      </div>
 
       {n > fabricCount && (
         <p className="guide-note">

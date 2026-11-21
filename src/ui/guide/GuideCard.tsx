@@ -29,12 +29,14 @@ interface Props {
   onSaveQuilt(): void;
   canSaveQuilt: boolean;
   onHelp(): void;
+  /** Opens the picture of how a fat quarter is cut and shuffled. */
+  onExplainFatQuarter(): void;
   onShuffle(): void;
 }
 
 const TITLES: Record<GuideStepId, string> = {
   size: 'Quilt size',
-  fabrics: 'Fat quarters',
+  fabrics: 'Pick your fabrics',
   shuffle: 'Mix the order',
   blocks: 'Turn and move blocks',
   touchups: 'Touch-ups',
@@ -135,6 +137,7 @@ export function GuideCard(props: Props) {
           fabricCount={project.collection.fabrics.length}
           cutLine={cutLine(project.pattern, props.slotPieces)}
           repeatBlocks={repeatedFabricBlocks(project.pattern, design.lineup, design.cells.length)}
+          onExplain={props.onExplainFatQuarter}
         />
       );
       break;

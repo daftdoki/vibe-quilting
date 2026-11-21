@@ -1,9 +1,13 @@
+import type { PatternDef } from '../core/types';
+import { FatQuarterDiagram } from './FatQuarterDiagram';
 import { Icon, type IconName } from './Icon';
 
 interface Topic {
   icon: IconName;
   title: string;
   steps: string[];
+  /** Shows the fat quarter picture above the steps. */
+  figure?: boolean;
 }
 
 /**
@@ -26,7 +30,7 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
       steps: [
         'The guide takes an empty quilt to a finished design one step at a time. It starts on its own the first time you open a size.',
         'Size: pick a quilt size. If that size already has a design, you can start it empty or keep it and leave the guide.',
-        'Fat quarters: tap fabrics to fill the stack in order. Dragging is off in this step. Tap any slot to make it the next one to fill, or to replace or clear it. Fill the rest for me picks fabrics for the empty slots.',
+        'Pick your fabrics: tap fabrics to fill the stack of fat quarters in order. Dragging is off in this step. Tap any slot to make it the next one to fill, or to replace or clear it. Fill the rest for me picks fabrics for the empty slots.',
         'In this step, yellow outlines on the quilt show every piece the current fat quarter fills.',
         'If you tap Next while some fat quarters are still empty, the guide asks first. Fill the rest and go on fills them and moves on. Keep picking stays on the step.',
         wide
@@ -94,7 +98,10 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
     {
       icon: 'stack',
       title: 'Fat quarter stack',
+      figure: true,
       steps: [
+        `The picture shows one fat quarter cut into its ${pieceCount} pieces, and where those pieces end up after the shuffle. In the guide's fat quarters step, See how a fat quarter is used opens the same picture.`,
+        `A block is ${pieceCount} pieces sewn together, one for each letter, and each comes from a different fat quarter. A quilt needs one fat quarter for every block.`,
         stackPlace,
         `Each slot is one fat quarter, numbered in order from 1. Each one is cut into ${pieceCount} pieces, and the pattern's shuffle decides which block each piece goes into.`,
         `Slot numbers count fat quarters. Letters ${letterRange} name the piece positions inside a block, the letters shown on empty pieces when you zoom in.`,
@@ -240,7 +247,17 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
   ];
 }
 
-export function Help({ wide, pieceCount, letterRange }: { wide: boolean; pieceCount: number; letterRange: string }) {
+export function Help({
+  wide,
+  pattern,
+  pieceCount,
+  letterRange,
+}: {
+  wide: boolean;
+  pattern: PatternDef;
+  pieceCount: number;
+  letterRange: string;
+}) {
   return (
     <div className="help">
       {topics(wide, pieceCount, letterRange).map((t, i) => (
@@ -252,6 +269,11 @@ export function Help({ wide, pieceCount, letterRange }: { wide: boolean; pieceCo
               <Icon name="chevron" size={18} />
             </span>
           </summary>
+          {t.figure && (
+            <div className="help-figure">
+              <FatQuarterDiagram pattern={pattern} />
+            </div>
+          )}
           <ul>
             {t.steps.map((s) => (
               <li key={s}>{s}</li>

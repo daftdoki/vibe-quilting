@@ -20,6 +20,7 @@ import { piecesForSlot, resolvePieces } from '../core/layout';
 import { loadHintSeen, saveHintSeen } from '../core/storage';
 import type { ProjectDef } from '../core/types';
 import { FabricTray } from './FabricTray';
+import { FatQuarterExplainer } from './FatQuarterDiagram';
 import { GuideCard } from './guide/GuideCard';
 import { TurnChoices } from './guide/steps';
 import { useGuide } from './guide/useGuide';
@@ -42,7 +43,16 @@ import { REASONS, useVersions } from './versions/useVersions';
 import { VersionsList } from './versions/VersionsList';
 
 type Mode = 'fabrics' | 'blocks';
-type SheetName = 'lineup' | 'size' | 'more' | 'help' | 'versions' | 'confirm-reset' | 'confirm-guide' | null;
+type SheetName =
+  | 'lineup'
+  | 'size'
+  | 'more'
+  | 'help'
+  | 'versions'
+  | 'fat-quarter'
+  | 'confirm-reset'
+  | 'confirm-guide'
+  | null;
 
 /** Drag props for a tray that should not start drags. */
 const NO_DRAG = () => ({
@@ -528,6 +538,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
       onSaveQuilt={saveQuiltFile}
       canSaveQuilt={canSaveQuilt}
       onHelp={() => setSheet('help')}
+      onExplainFatQuarter={() => setSheet('fat-quarter')}
       onShuffle={shuffle}
     />
   ) : null;
@@ -905,9 +916,14 @@ export function Workspace({ project }: { project: ProjectDef }) {
       <Sheet open={sheet === 'help'} title="How to use" onClose={() => setSheet(null)} className="sheet-help">
         <Help
           wide={wide}
+          pattern={pattern}
           pieceCount={pattern.block.pieces.length}
           letterRange={`${pattern.block.pieces[0]?.label ?? ''} to ${pattern.block.pieces[pattern.block.pieces.length - 1]?.label ?? ''}`}
         />
+      </Sheet>
+
+      <Sheet open={sheet === 'fat-quarter'} title="How a fat quarter is used" onClose={() => setSheet(null)}>
+        <FatQuarterExplainer pattern={pattern} />
       </Sheet>
 
       <Sheet open={sheet === 'versions'} title="Versions" onClose={() => setSheet(null)} className="sheet-versions">

@@ -2079,3 +2079,79 @@ html.is-dragging * {
   box-shadow: inset 0 0 0 1px rgba(255, 225, 77, 0.3);
   color: var(--ink);
 }
+
+/* Fat quarter diagram */
+.fq-diagram {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  margin: 0 auto;
+}
+
+.fq-piece {
+  fill: #33195a;
+  stroke: rgba(255, 244, 251, 0.28);
+  stroke-width: 1;
+}
+
+.fq-piece.is-own {
+  fill: var(--pink);
+  stroke: var(--ink-dark);
+  stroke-width: 1.5;
+}
+
+.fq-block {
+  fill: none;
+  stroke: var(--ink-dim);
+  stroke-width: 1.5;
+}
+
+.fq-letter {
+  fill: var(--ink-dark);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.fq-label {
+  fill: var(--ink);
+  font-family: var(--font);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.fq-step {
+  fill: var(--ink-dim);
+  font-family: var(--font);
+  font-size: 14.5px;
+}
+
+.fq-arrow {
+  fill: none;
+  stroke: var(--yellow);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.fq-explainer {
+  display: grid;
+  gap: 16px;
+  padding: 4px 4px 8px;
+}
+
+.fq-points {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0 0 0 20px;
+  line-height: 1.45;
+}
+
+.help-figure {
+  margin: 4px 0 14px;
+  padding: 14px 12px;
+  border-radius: 16px;
+  background: rgba(255, 244, 251, 0.04);
+}

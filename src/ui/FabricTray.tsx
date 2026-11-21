@@ -35,7 +35,7 @@ export function FabricTray({
   const noun = (n: number) =>
     countNoun === 'slot' ? (n === 1 ? 'fat quarter' : 'fat quarters') : n === 1 ? 'piece' : 'pieces';
   return (
-    <ul className={`tray tray-${layout}${hideMode ? ' is-leaving-out' : ''}`} aria-label="Fabrics">
+    <ul className={`tray tray-${layout}${hideMode ? ' is-hiding' : ''}`} aria-label="Fabrics">
       {fabrics.map((f) => {
         const count = usage.get(f.id) ?? 0;
         const out = excluded?.has(f.id) ?? false;
@@ -46,7 +46,7 @@ export function FabricTray({
               type="button"
               className={`swatch${active ? ' is-active' : ''}${out ? ' is-excluded' : ''}`}
               aria-pressed={hideMode ? out : active}
-              aria-label={out ? `${f.name}, hidden` : `${f.name}, ${count} ${noun(count)}`}
+              aria-label={out ? `${f.name}, hidden` : hideMode ? `${f.name}, showing` : `${f.name}, ${count} ${noun(count)}`}
               title={out ? `${f.name}, hidden` : f.name}
               {...dragProps(f)}
               onClick={() => {
@@ -63,6 +63,13 @@ export function FabricTray({
                     <svg viewBox="0 0 24 24" width="30" height="30" focusable="false">
                       <circle cx="12" cy="12" r="8.5" />
                       <path d="M6 18 18 6" />
+                    </svg>
+                  </span>
+                ) : hideMode ? (
+                  <span className="swatch-eye" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="16" height="16" focusable="false">
+                      <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z" />
+                      <circle cx="12" cy="12" r="2.8" />
                     </svg>
                   </span>
                 ) : (

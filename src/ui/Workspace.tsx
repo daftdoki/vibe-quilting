@@ -225,9 +225,11 @@ export function Workspace({ project }: { project: ProjectDef }) {
   const toggleExcluded = useCallback(
     (id: string) => {
       const next = new Set(excludedIds);
+      const name = collection.fabrics.find((f) => f.id === id)?.name ?? 'That fabric';
       if (next.has(id)) {
         next.delete(id);
         excluded.set(next);
+        setToast(`${name} is back.`);
         return;
       }
       if (collection.fabrics.filter((f) => !next.has(f.id)).length <= 1) {
@@ -236,6 +238,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
       }
       next.add(id);
       excluded.set(next);
+      setToast(`${name} is hidden.`);
       if (removeFabric(design, id) !== design) checkpoint(REASONS.leaveOut, (d) => removeFabric(d, id));
       setActiveId((cur) => (cur === id ? null : cur));
     },
@@ -797,11 +800,13 @@ export function Workspace({ project }: { project: ProjectDef }) {
             {showTray && (
               <section className="panel-section">
                 <div className="panel-head">
-                  <h2>Fabrics</h2>
+                  <h2>{hiding ? 'Tap to hide or bring back' : 'Fabrics'}</h2>
                   <p>
-                    {trayRole === 'fill'
-                      ? 'Tap one to put it in the next fat quarter.'
-                      : 'Tap one to paint with it, or drag it onto a piece.'}
+                    {hiding
+                      ? 'Fabrics with a slash are hidden.'
+                      : trayRole === 'fill'
+                        ? 'Tap one to put it in the next fat quarter.'
+                        : 'Tap one to paint with it, or drag it onto a piece.'}
                   </p>
                 </div>
                 {tray}

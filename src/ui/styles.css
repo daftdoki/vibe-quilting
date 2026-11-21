@@ -2301,3 +2301,131 @@ html.is-dragging * {
   align-items: center;
   gap: 0 4px;
 }
+
+/* Hide mode. The fabric list is framed in yellow and every fabric carries a
+   mark, an eye while it shows and a slash once hidden, so it is plain that a
+   tap here hides or brings back. */
+.tray.is-hiding {
+  padding: 8px;
+  border-radius: 18px;
+  outline: 2px dashed var(--yellow);
+  outline-offset: -2px;
+  background: rgba(255, 225, 77, 0.06);
+}
+
+.swatch-eye {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 13px;
+  background: var(--ink);
+  box-shadow: 0 0 0 2.5px var(--panel);
+}
+
+.swatch-eye svg {
+  fill: none;
+  stroke: var(--ink-dark);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.guide.is-hiding .guide-text p {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 225, 77, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 225, 77, 0.35);
+  color: var(--ink);
+}
+
+.guide-hide {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.guide-hide-count {
+  font-weight: 650;
+}
+
+.guide-hide-done {
+  min-height: 48px;
+  padding: 0 20px;
+}
+
+/* "How it works" beside the Pick your fabrics title. It opens the background
+   notes under the title and costs no height while closed. */
+.guide-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.guide-how-btn {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(45, 226, 230, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(45, 226, 230, 0.4);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.guide-how-btn:hover {
+  background: rgba(45, 226, 230, 0.2);
+}
+
+.guide-how-btn > svg {
+  color: var(--cyan);
+}
+
+.guide-how-chevron {
+  display: grid;
+  transition: transform 160ms ease;
+}
+
+.guide-how-btn[aria-expanded='true'] .guide-how-chevron {
+  transform: rotate(180deg);
+}
+
+.guide-how {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(45, 226, 230, 0.07);
+  box-shadow: inset 0 0 0 1px rgba(45, 226, 230, 0.25);
+}
+
+.guide-how-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0 0 0 18px;
+  font-size: 14.5px;
+  line-height: 1.45;
+}
+
+.is-wide .guide-how-btn,
+.is-wide .guide-how-list {
+  font-size: 16px;
+}
+
+/* Enough height on a phone to show every action button without scrolling. */
+.is-narrow .guide-fabrics {
+  max-height: 56dvh;
+}

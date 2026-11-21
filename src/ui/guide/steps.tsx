@@ -60,9 +60,7 @@ export function FabricsStep({
   fabricsById,
   fabricCount,
   excludedCount,
-  cutLine,
   repeatBlocks,
-  onExplain,
 }: {
   guide: Guide;
   design: Design;
@@ -72,9 +70,6 @@ export function FabricsStep({
   excludedCount: number;
   /** Blocks where her picks put one fabric twice, or null when that cannot be avoided. */
   repeatBlocks: number | null;
-  onExplain(): void;
-  /** How a fat quarter is cut, worded from the pattern. */
-  cutLine: string | null;
 }) {
   const listRef = useRef<HTMLOListElement>(null);
   const target = guide.targetSlot;
@@ -94,6 +89,26 @@ export function FabricsStep({
   }, [target]);
 
   const targetFilled = target !== null && design.lineup[target] !== null;
+
+  // The hide mode takes over the step, so the only things on the card are what
+  // to do, how many are hidden, and the way out.
+  if (guide.hiding) {
+    return (
+      <div className="guide-hide" role="group" aria-label="Hide fabrics">
+        <p className="guide-hide-count" role="status">
+          {excludedCount === 0
+            ? 'No fabrics are hidden yet.'
+            : excludedCount === 1
+              ? '1 fabric is hidden.'
+              : `${excludedCount} fabrics are hidden.`}
+        </p>
+        <button type="button" className="btn btn-primary guide-hide-done" onClick={() => guide.setHiding(false)}>
+          <Icon name="check" size={20} />
+          Done hiding
+        </button>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -125,14 +140,7 @@ export function FabricsStep({
         })}
       </ol>
 
-      {guide.hiding ? (
-        <div className="guide-row">
-          <button type="button" className="btn btn-small btn-primary" onClick={() => guide.setHiding(false)}>
-            <Icon name="check" size={18} />
-            Done
-          </button>
-        </div>
-      ) : guide.offerFill ? (
+      {guide.offerFill ? (
         <div className="guide-choice" role="group" aria-label="Empty fat quarters">
           <p>
             {guide.emptySlots} {guide.emptySlots === 1 ? 'fat quarter is' : 'fat quarters are'} still empty.
@@ -193,16 +201,7 @@ export function FabricsStep({
         </p>
       )}
 
-      {cutLine && <p className="guide-note guide-cut">{cutLine}</p>}
-
-      <div className="guide-row">
-        <button type="button" className="btn btn-small btn-ghost" onClick={onExplain}>
-          <Icon name="help" size={18} />
-          See how a fat quarter is used
-        </button>
-      </div>
-
-      {!guide.hiding && excludedCount > 0 && (
+      {excludedCount > 0 && (
         <p className="guide-note guide-hidden-note">
           {excludedCount === 1 ? '1 fabric is hidden.' : `${excludedCount} fabrics are hidden.`}{' '}
           <button type="button" className="btn btn-small btn-text" onClick={() => guide.setHiding(true)}>
@@ -210,15 +209,48 @@ export function FabricsStep({
           </button>
         </p>
       )}
-
-      {n > fabricCount - excludedCount && (
-        <p className="guide-note">
-          {excludedCount > 0
-            ? `This size has ${n} fat quarters and ${fabricCount - excludedCount} ${fabricCount - excludedCount === 1 ? 'fabric is' : 'fabrics are'} in use, so some fabrics will repeat.`
-            : `This size has ${n} fat quarters and the collection has ${fabricCount} fabrics, so some fabrics will repeat.`}
-        </p>
-      )}
     </>
+  );
+}
+
+/** Background on the Pick your fabrics step, shown when she taps "How it works" beside the title. */
+export function FabricsHow({
+  id,
+  slotCount,
+  fabricCount,
+  excludedCount,
+  cutLine,
+  onExplain,
+}: {
+  id: string;
+  slotCount: number;
+  fabricCount: number;
+  excludedCount: number;
+  cutLine: string | null;
+  onExplain(): void;
+}) {
+  const inUse = fabricCount - excludedCount;
+  return (
+    <div className="guide-how" id={id}>
+      <ul className="guide-how-list">
+        {cutLine && <li>{cutLine}</li>}
+        <li>Pick at random replaces every pick with a new mix. Tap it again for a different one.</li>
+        <li>Fill the rest for me keeps the fabrics you picked and fills only the empty fat quarters.</li>
+        <li>Clear picks empties every fat quarter so you can pick again.</li>
+        <li>Hide a fabric keeps a fabric you do not want out of Pick at random and Fill the rest for me.</li>
+        {slotCount > inUse && (
+          <li>
+            {excludedCount > 0
+              ? `This size has ${slotCount} fat quarters and ${inUse} ${inUse === 1 ? 'fabric is' : 'fabrics are'} in use, so some fabrics will repeat.`
+              : `This size has ${slotCount} fat quarters and the collection has ${fabricCount} fabrics, so some fabrics will repeat.`}
+          </li>
+        )}
+      </ul>
+      <button type="button" className="btn btn-small btn-ghost" onClick={onExplain}>
+        <Icon name="help" size={18} />
+        See how a fat quarter is used
+      </button>
+    </div>
   );
 }
 

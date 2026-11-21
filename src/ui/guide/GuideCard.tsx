@@ -2,13 +2,13 @@
  * The guide card. It sits above the tray in the narrow layout and at the top
  * of the side panel in the wide layout.
  */
-import { useId, type ReactNode } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import { Icon } from '../Icon';
 import { repeatedFabricBlocks } from '../../core/design';
 import type { Design, FabricDef, PatternDef, ProjectDef, ResolvedPiece } from '../../core/types';
 import type { GuideStepId } from '../../core/storage';
 import type { CheckpointUpdate } from '../versions/useVersions';
-import { BlocksStep, DoneStep, FabricsStep, ShuffleStep, SizeStep, TouchupsStep } from './steps';
+import { BlocksStep, DoneStep, FabricsHow, FabricsStep, ShuffleStep, SizeStep, TouchupsStep } from './steps';
 import { COUNTED_STEPS, type Guide } from './useGuide';
 
 interface Props {
@@ -55,7 +55,11 @@ function instruction(step: GuideStepId, p: Props): string {
     case 'size':
       return 'Pick a quilt size.';
     case 'fabrics': {
-      if (guide.hiding) return 'Tap a fabric to hide it. Tap a hidden one to bring it back.';
+      if (guide.hiding) {
+        return wide
+          ? 'Tap a fabric in the list below to hide it. Tap a hidden one to bring it back.'
+          : 'Tap a fabric at the bottom of the screen to hide it. Tap a hidden one to bring it back.';
+      }
       const where = wide ? 'in the list below' : 'below';
       const t = guide.targetSlot;
       if (t === null) return 'Every fat quarter is picked. Tap one to change it.';
@@ -103,11 +107,8 @@ function tip(step: GuideStepId, wide: boolean): string | null {
  * One line on how a fat quarter is cut, worded from what the pattern does with
  * the target slot. The letters only show when it fills one piece of each.
  */
-function cutLine(pattern: PatternDef, pieces: readonly ResolvedPiece[], wide: boolean): string | null {
+function cutLine(pattern: PatternDef, pieces: readonly ResolvedPiece[]): string | null {
   if (pieces.length === 0) return null;
-  // The phone card is short, so it keeps only the part about the outlines. The
-  // diagram button below it explains how a fat quarter is cut.
-  if (!wide) return 'Yellow outlines show where this fat quarter goes.';
   const defs = pattern.block.pieces;
   const letters = new Set(pieces.map((p) => p.pieceIndex));
   const blocks = new Set(pieces.map((p) => p.blockId));
@@ -124,6 +125,10 @@ function cutLine(pattern: PatternDef, pieces: readonly ResolvedPiece[], wide: bo
 export function GuideCard(props: Props) {
   const { guide, project, design, fabricsById, wide, exporting, onExport, onHelp, onShuffle } = props;
   const titleId = useId();
+  const howId = useId();
+  // The background notes for Pick your fabrics, closed until she asks.
+  const [howOpen, setHowOpen] = useState(false);
+  useEffect(() => setHowOpen(false), [guide.step, guide.hiding]);
   const step = guide.step;
   if (!step) return null;
 
@@ -144,9 +149,7 @@ export function GuideCard(props: Props) {
           fabricsById={fabricsById}
           fabricCount={project.collection.fabrics.length}
           excludedCount={props.excludedCount}
-          cutLine={cutLine(project.pattern, props.slotPieces, wide)}
           repeatBlocks={repeatedFabricBlocks(project.pattern, design.lineup, design.cells.length)}
-          onExplain={props.onExplainFatQuarter}
         />
       );
       break;
@@ -188,7 +191,7 @@ export function GuideCard(props: Props) {
   const showNext = step !== 'touchups' && step !== 'done';
 
   return (
-    <section className={`guide guide-${step}`} aria-labelledby={titleId}>
+    <section className={`guide guide-${step}${step === 'fabrics' && guide.hiding ? ' is-hiding' : ''}`} aria-labelledby={titleId}>
       <div className="guide-head">
         <span className="guide-count">{counter}</span>
         <ol className="guide-progress" aria-hidden="true">
@@ -204,7 +207,7 @@ export function GuideCard(props: Props) {
       {/* Back and Next sit under the step counter, where they are seen first. Touch-ups brings its own row. */}
       {step === 'touchups' ? (
         <TouchupsStep guide={guide} />
-      ) : (
+      ) : step === 'fabrics' && guide.hiding ? null : (
         <div className="guide-nav">
           {step !== 'size' && (
             <button type="button" className="btn btn-small guide-back" onClick={guide.back}>
@@ -221,9 +224,36 @@ export function GuideCard(props: Props) {
         </div>
       )}
 
-      <h2 id={titleId} className="guide-title">
-        {TITLES[step]}
-      </h2>
+      <div className="guide-title-row">
+        <h2 id={titleId} className="guide-title">
+          {step === 'fabrics' && guide.hiding ? 'Hide fabrics' : TITLES[step]}
+        </h2>
+        {step === 'fabrics' && !guide.hiding && (
+          <button
+            type="button"
+            className="guide-how-btn"
+            aria-expanded={howOpen}
+            aria-controls={howId}
+            onClick={() => setHowOpen((o) => !o)}
+          >
+            <Icon name="help" size={18} />
+            How it works
+            <span className="guide-how-chevron" aria-hidden="true">
+              <Icon name="chevron" size={16} />
+            </span>
+          </button>
+        )}
+      </div>
+      {step === 'fabrics' && !guide.hiding && howOpen && (
+        <FabricsHow
+          id={howId}
+          slotCount={design.lineup.length}
+          fabricCount={project.collection.fabrics.length}
+          excludedCount={props.excludedCount}
+          cutLine={cutLine(project.pattern, props.slotPieces)}
+          onExplain={props.onExplainFatQuarter}
+        />
+      )}
       <div className="guide-text" aria-live="polite">
         {/* In the hide mode the mode's instruction takes the place of this lead, so the card does not grow. */}
         {step === 'fabrics' && !guide.hiding && (

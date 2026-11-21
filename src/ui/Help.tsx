@@ -41,7 +41,10 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
         'Quilt size: pick a quilt size. If that size already has a design, you can tap Start this size empty, or Keep it and exit the guide.',
         'Pick your fabrics: tap fabrics to fill the stack of fat quarters in order. Dragging is off in this step. Tap any slot to make it the next one to fill, or to replace or clear it. Pick at random replaces every fat quarter with a random mix of fabrics each time you tap it, so tap it again to see another mix. Fill the rest for me keeps the fat quarters you picked and fills only the empty ones. It shows only while some are empty. Clear picks, beside it, empties every fat quarter so you can pick again. It shows once you have picked at least one. Undo brings them back.',
         'At the top, the step says you can pick each fabric yourself, let the app pick at random, or do some of each.',
-        'Hide a fabric, in the same step, is for fabrics you do not want. Tap it and the list shows every fabric, with hidden ones grey and crossed out. Tap a fabric to hide it, and tap a hidden one to bring it back. Tap Done when you are finished. Escape, Next, Back and Exit guide end it too.',
+        'How it works, beside the step\'s title, opens a short list under the title: how a fat quarter is cut, what each button in the step does, and whether fabrics will repeat in this size. It also has See how a fat quarter is used, which opens a picture. Tap How it works again to close it. It starts closed each time you come to the step.',
+        'Hide a fabric, in the same step, is for fabrics you do not want. Tap it and the card changes to Hide fabrics, with one instruction, a count of hidden fabrics and a Done hiding button. The rest of the step, and Back and Next, are put away until you finish.',
+        'While you are hiding, the fabric list has a yellow dashed frame and shows every fabric. A fabric that shows has an eye mark. A hidden one is grey with a slash through it. Tap a fabric to hide it, and tap a hidden one to bring it back. A note at the top of the quilt names the fabric each time.',
+        'Tap Done hiding when you are finished. Escape and Exit guide end it too.',
         'A hidden fabric is not in the fabric list or the fat quarter stack\'s fabric picker, so it cannot be picked, painted or dragged. When any are hidden, the step says how many, with Show them to see them again and bring them back.',
         'Hiding a fabric takes it off the quilt you have open. The fat quarters that held it become empty, and pieces you placed by hand with it go back to the shuffle. Quilts in other sizes keep it, but the list applies to every size, so Pick at random and Fill the rest for me never choose it in any size. Undo brings the quilt back, but the fabric stays hidden. You cannot hide the last fabric.',
         'In this step, yellow outlines on the quilt show every piece the current fat quarter fills, except pieces you placed by hand.',
@@ -80,8 +83,8 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
         'The number on each fabric counts the pieces that use it. In the guide\'s Pick your fabrics step it counts fat quarters instead.',
         'A fabric you hid does not show in the list, so it cannot be painted or dragged.',
         wide
-          ? 'To hide a fabric or bring one back, use Hide a fabric in the guide\'s Pick your fabrics step. There every fabric shows, and a hidden one is grey and crossed out, with Hidden under its name and no number. Hiding also takes the fabric off the quilt you have open, and the list applies to every size. To get there, open the three dots menu, tap Resume the guide, and tap Back if it opens at Mix the order.'
-          : 'To hide a fabric or bring one back, use Hide a fabric in the guide\'s Pick your fabrics step. There every fabric shows, and a hidden one is grey and crossed out, with no number. Hiding also takes the fabric off the quilt you have open, and the list applies to every size. To get there, open the three dots menu, tap Resume the guide, and tap Back if it opens at Mix the order.',
+          ? 'To hide a fabric or bring one back, use Hide a fabric in the guide\'s Pick your fabrics step. There every fabric shows. One that shows has an eye mark, and a hidden one is grey with a slash, with Hidden under its name. Hiding also takes the fabric off the quilt you have open, and the list applies to every size. To get there, open the three dots menu, tap Resume the guide, and tap Back if it opens at Mix the order.'
+          : 'To hide a fabric or bring one back, use Hide a fabric in the guide\'s Pick your fabrics step. There every fabric shows. One that shows has an eye mark, and a hidden one is grey with a slash. Hiding also takes the fabric off the quilt you have open, and the list applies to every size. To get there, open the three dots menu, tap Resume the guide, and tap Back if it opens at Mix the order.',
       ],
     },
     {
@@ -118,7 +121,7 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
       title: 'Fat quarter stack',
       figure: true,
       steps: [
-        `The picture shows one fat quarter cut into its ${pieceCount} pieces, and where those pieces end up after the shuffle. In the guide's Pick your fabrics step, See how a fat quarter is used opens the same picture with a few lines about it.`,
+        `The picture shows one fat quarter cut into its ${pieceCount} pieces, and where those pieces end up after the shuffle. In the guide's Pick your fabrics step, tap How it works beside the title, then See how a fat quarter is used, to open the same picture with a few lines about it.`,
         `A block is ${pieceCount} pieces sewn together, one for each letter, and each comes from a different fat quarter. A quilt needs one fat quarter for every block.`,
         `On a size with fewer than ${pieceCount} fat quarters, a block has more than one piece from the same fat quarter.`,
         stackPlace,
@@ -131,7 +134,7 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
         ...(wide ? ['You can also drag a fabric from the list onto a slot.'] : []),
         'Shuffle mixes the order. Empty slots stay where they are.',
         'When slots are empty, Fill the rest for me picks fabrics for them. It keeps the slots you filled, mixes designs side by side, and spaces out repeats.',
-        'When the stack has more fat quarters than there are fabrics you have not hidden, some fabrics repeat. The guide\'s Pick your fabrics step says so.',
+        'When the stack has more fat quarters than there are fabrics you have not hidden, some fabrics repeat. In the guide\'s Pick your fabrics step, How it works says so.',
         'If your picks put the same fabric twice in one block, a note in the stack and in the guide\'s Pick your fabrics step says how many blocks are affected. It is only a heads-up. Change or move a fat quarter to spread them out, or leave it. The note does not count pieces you placed by hand, and it does not show on a size with fewer fat quarters than a block has pieces, where repeats cannot be avoided.',
       ],
     },

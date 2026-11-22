@@ -45,7 +45,7 @@ A project pairs one pattern with one fabric collection. Patterns and collections
 
 ## Data file format
 
-Export data writes one JSON file with every quilt, saved version, guide position and the list of excluded fabrics. Save quilt file writes the same format with `"scope": "quilt"` and one size of one project. The format does not depend on how the app stores things in `localStorage`. Code is in `src/core/backup.ts`, and the UI is in `src/ui/data/`.
+Export data writes one JSON file with every quilt, saved version, quilt name, guide position and the list of excluded fabrics. Save quilt file writes the same format with `"scope": "quilt"` and one size of one project. The format does not depend on how the app stores things in `localStorage`. Code is in `src/core/backup.ts`, and the UI is in `src/ui/data/`.
 
 ```jsonc
 {
@@ -61,7 +61,8 @@ Export data writes one JSON file with every quilt, saved version, guide position
       "collection": { "id": "...", "name": "...", "fabrics": { "<fabricId>": { "name": "...", "sku": "...", "design": "...", "colorway": "..." } } },
       "lastSizeId": "throw", // not in a quilt file
       "excludedFabrics": ["<fabricId>"], // optional. Fabrics she excluded. Not in a quilt file
-      "sizes": { "<sizeId>": { "name": "...", "cols": 4, "rows": 4, "design": {}, "guide": {}, "versions": [] } }
+      "sizes": { "<sizeId>": { "name": "...", "cols": 4, "rows": 4, "design": {}, "guide": {}, "versions": [],
+                     "quiltName": "Ginger's Quilt" } } // quiltName is optional, never blank, at most 60 characters
     }
   },
   "settings": { "hintSeen": true } // not in a quilt file
@@ -76,7 +77,7 @@ The names, SKUs and grid sizes describe things so a later app can map old ids to
 - **Tolerant reading.** Unknown fields, projects, sizes and guide steps are ignored. A guide step that an older app had and this one folded into another, such as `shuffle`, is read as the step that replaced it (`fabrics`). A field with the wrong type drops that one item, never the file. Fatal errors are only: not JSON, not this app's file, too large, `readableBy` too new, and `projects` missing or a migration that cannot run. A quilt file is also refused when it holds no quilt for a known pattern and size, or more than one quilt.
 - **Repair.** `repairDesign` (`src/core/repair.ts`) fits a design to the current pattern and fabrics, for files and for `localStorage` alike. An unknown fabric becomes an empty slot, bad overrides are dropped, lineups are cut or padded, and blocks that do not fit are reset. Only an unknown size id makes it give up.
 - **Permanent ids and aliases.** Project, size, piece and fabric ids are permanent. If one must change, add the old id to `aliases` (`FabricCollection.aliases`, `PatternDef.aliases.sizes` and `.pieces`, and `projectAliases` in `src/projects/index.ts`). Aliases apply to files, and to fabric and piece ids in stored designs. Keys in `localStorage` still use the old project and size ids, so renaming one of those also needs a storage migration.
-- **Scope.** `scope` says what a file is for. Missing or exactly `"all"` is a full export, and import replaces everything on the device. `"quilt"` is one size of one project (`buildQuiltBackup`), and import opens it with `applyQuiltBackup`: it replaces only that size's design, keeps the old design as an automatic version (by the usual `addVersion` rules, so not when it is empty, equal to the incoming design, or equal to the newest version), merges the versions by id or identical content, makes that size the last one opened, and leaves everything else alone. A quilt file has no `settings`, no `lastSizeId` and no `excludedFabrics`. Adding `scope` was additive, so `format` and `readableBy` stayed 2. **Safety rule:** any other `scope` value, from a future app, is read as a quilt-style file and never as a full replace, and `applyBackup` refuses data that is not scope `"all"`. A reader that does not understand a scope cannot wipe the device. Readers built before `scope` existed ignore it and would treat a quilt file as a full one.
+- **Scope.** `scope` says what a file is for. Missing or exactly `"all"` is a full export, and import replaces everything on the device. `"quilt"` is one size of one project (`buildQuiltBackup`), and import opens it with `applyQuiltBackup`: it replaces only that size's design, keeps the old design as an automatic version (by the usual `addVersion` rules, so not when it is empty, equal to the incoming design, or equal to the newest version), merges the versions by id or identical content, makes that size the last one opened, sets the size's quilt name when the file has one and otherwise keeps the device's name, and leaves everything else alone. A quilt file has no `settings`, no `lastSizeId` and no `excludedFabrics`. Adding `scope` was additive, so `format` and `readableBy` stayed 2. **Safety rule:** any other `scope` value, from a future app, is read as a quilt-style file and never as a full replace, and `applyBackup` refuses data that is not scope `"all"`. A reader that does not understand a scope cannot wipe the device. Readers built before `scope` existed ignore it and would treat a quilt file as a full one.
 - **Fixtures.** `src/core/fixtures/backup-v*.json` and `quilt-v*.json` are real files of each format, tested in `src/core/backup.test.ts`. Never edit or delete one. Only add new ones, and every format must keep importing.
 
 ## Dependency age rule

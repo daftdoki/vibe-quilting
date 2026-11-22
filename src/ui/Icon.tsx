@@ -27,6 +27,7 @@ const PATHS = {
   ban: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM5.6 18.4 18.4 5.6',
   print: 'M7 9V3h10v6M7 17H5a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2M7 14h10v7H7Z',
   keyboard: 'M3 7h18v10H3ZM7 10.5h.01M11 10.5h.01M15 10.5h.01M8 14h8',
+  pencil: 'M4 20h4L19 9l-4-4L4 16v4ZM13.5 6.5l4 4',
 } as const;
 
 export type IconName = keyof typeof PATHS;

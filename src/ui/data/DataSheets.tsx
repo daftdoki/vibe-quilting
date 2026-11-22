@@ -8,6 +8,7 @@ import {
   importErasesText,
   importNotesText,
   quiltHoldsText,
+  quiltNameChangeText,
   quiltOpensText,
 } from './text';
 
@@ -76,12 +77,16 @@ export function DataSheets({ data }: { data: DataTransfer }) {
       </>
     );
   } else if (sheet?.kind === 'quilt' && sheet.summary.quilt) {
-    const { sizeName } = sheet.summary.quilt;
+    const { sizeName, quiltName } = sheet.summary.quilt;
+    const nameChange = quiltNameChangeText(quiltName, sheet.deviceName);
     title = 'Open this quilt?';
     body = (
       <>
-        <p className="confirm-text">{quiltHoldsText(sizeName, sheet.summary.versions, sheet.summary.exportedAt)}</p>
+        <p className="confirm-text">
+          {quiltHoldsText(sizeName, sheet.summary.versions, sheet.summary.exportedAt, quiltName)}
+        </p>
         <p className="confirm-text">{quiltOpensText(sizeName, sheet.deviceHasQuilt)}</p>
+        {nameChange && <p className="confirm-text">{nameChange}</p>}
         {importNotesText(sheet.summary.notes).map((t) => (
           <p key={t} className="confirm-text">
             {t}

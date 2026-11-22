@@ -29,6 +29,7 @@ import { addVersion, designsEqual, mergeVersions } from './versions';
 import { repairDesign, resolveAlias } from './repair';
 import {
   isDesignShape,
+  normalizeQuiltName,
   parseDataKey,
   parseExcluded,
   parseGuideProgress,
@@ -40,6 +41,7 @@ import {
   readGuideFrom,
   readHintSeenFrom,
   readLastSizeFrom,
+  readQuiltNameFrom,
   readVersionsFrom,
   STORAGE_PREFIX,
   writeDesignTo,
@@ -47,10 +49,12 @@ import {
   writeGuideTo,
   writeHintSeenTo,
   writeLastSizeTo,
+  writeQuiltNameTo,
   writeVersionsTo,
   type GuideProgress,
   type KeyValueStorage,
 } from './storage';
+import { quiltFileBase } from './fileName';
 import type { Design, DesignVersion, ProjectDef } from './types';
 
 export type { KeyValueStorage } from './storage';
@@ -111,6 +115,8 @@ export interface BackupSize {
   design: Design | null;
   guide: GuideProgress | null;
   versions: DesignVersion[];
+  /** The name she gave this quilt. Missing when it has none. Added without a format change. */
+  quiltName?: string;
 }
 
 /** What a file holds once it is read and repaired, ready to write to storage. */
@@ -134,6 +140,8 @@ export interface ImportSize {
   design: Design | null;
   guide: GuideProgress | null;
   versions: DesignVersion[];
+  /** Normalized and never blank. Missing when the file has no name for this quilt. */
+  quiltName?: string;
 }
 
 /** Things to tell her about a file before she imports it. */
@@ -165,7 +173,7 @@ export interface StorageCounts {
 export interface BackupSummary extends StorageCounts {
   scope: 'all' | 'quilt';
   /** The quilt a scope "quilt" file holds. */
-  quilt: { projectId: string; sizeId: string; sizeName: string } | null;
+  quilt: { projectId: string; sizeId: string; sizeName: string; quiltName?: string } | null;
   /** Null when the file has no usable date. */
   exportedAt: string | null;
   notes: ImportNotes;
@@ -220,7 +228,13 @@ function collect(storage: KeyValueStorage): { projects: Record<string, BackupPro
       const design = readDesignFrom(storage, projectId, sizeId);
       const guide = readGuideFrom(storage, projectId, sizeId);
       const versions = readVersionsFrom(storage, projectId, sizeId);
-      if (design || guide || versions.length > 0) sizes[sizeId] = { design, guide, versions };
+      const quiltName = readQuiltNameFrom(storage, projectId, sizeId);
+      // A size that has only a name is kept, so the name is not lost.
+      if (design || guide || versions.length > 0 || quiltName) {
+        const size: BackupSize = { design, guide, versions };
+        if (quiltName) size.quiltName = quiltName;
+        sizes[sizeId] = size;
+      }
     }
     const lastSizeId = readLastSizeFrom(storage, projectId);
     const excluded = readExcludedFrom(storage, projectId);
@@ -297,6 +311,8 @@ export function buildQuiltBackup(
     guide: readGuideFrom(storage, projectId, sizeId),
     versions: readVersionsFrom(storage, projectId, sizeId),
   };
+  const quiltName = readQuiltNameFrom(storage, projectId, sizeId);
+  if (quiltName) size.quiltName = quiltName;
   const projects = { [projectId]: { sizes: { [sizeId]: size } } };
   describe(projects, ctx);
   return { ...header(now, ctx), scope: 'quilt', projects };
@@ -311,9 +327,13 @@ export function backupFileName(now: Date): string {
   return `vibe-quilting-${localDate(now)}.json`;
 }
 
-/** "vibe-quilting-throw-2026-03-12.json", using the local date. */
-export function quiltFileName(sizeId: string, now: Date): string {
-  return `vibe-quilting-${sizeId}-${localDate(now)}.json`;
+/**
+ * "Ginger's Quilt 2026-03-12.json" for a named quilt, else
+ * "vibe-quilting-throw-2026-03-12.json". Uses the local date.
+ */
+export function quiltFileName(sizeId: string, now: Date, quiltName = ''): string {
+  const base = quiltFileBase(quiltName);
+  return base === null ? `vibe-quilting-${sizeId}-${localDate(now)}.json` : `${base} ${localDate(now)}.json`;
 }
 
 function localDate(now: Date): string {
@@ -451,7 +471,11 @@ function readFile(file: Raw, ctx: BackupContext): { data: ImportData; notes: Imp
           else notes.unreadable++;
         }
       }
-      sizes.set(sizeId, { sizeId, design, guide: parseGuideProgress(s.guide), versions });
+      const size: ImportSize = { sizeId, design, guide: parseGuideProgress(s.guide), versions };
+      // A name of the wrong type, or a blank one, is ignored.
+      const quiltName = normalizeQuiltName(s.quiltName);
+      if (quiltName) size.quiltName = quiltName;
+      sizes.set(sizeId, size);
     }
     const last = typeof p.lastSizeId === 'string' ? resolveAlias(def.pattern.aliases?.sizes, p.lastSizeId) : null;
     projects.set(def.id, {
@@ -503,7 +527,12 @@ export function parseBackup(text: string, ctx: BackupContext): ParseResult {
         projects: [{ projectId: one.p.projectId, lastSizeId: one.s.sizeId, sizes: [one.s] }],
         hintSeen: false,
       };
-      const quilt = { projectId: one.p.projectId, sizeId: one.s.sizeId, sizeName: sizeName ?? one.s.sizeId };
+      const quilt: NonNullable<BackupSummary['quilt']> = {
+        projectId: one.p.projectId,
+        sizeId: one.s.sizeId,
+        sizeName: sizeName ?? one.s.sizeId,
+      };
+      if (one.s.quiltName) quilt.quiltName = one.s.quiltName;
       return {
         ok: true,
         file: data,
@@ -543,6 +572,8 @@ export function applyBackup(storage: KeyValueStorage, data: ImportData): ApplyRe
         if (s.design) writeDesignTo(storage, p.projectId, s.design);
         if (s.guide) writeGuideTo(storage, p.projectId, s.sizeId, s.guide);
         if (s.versions.length > 0) writeVersionsTo(storage, p.projectId, s.sizeId, s.versions);
+        // Every key was removed above, so sizes without a name in the file end up unnamed.
+        if (s.quiltName) writeQuiltNameTo(storage, p.projectId, s.sizeId, s.quiltName);
       }
     }
     if (data.hintSeen) writeHintSeenTo(storage);
@@ -562,7 +593,8 @@ export function applyBackup(storage: KeyValueStorage, data: ImportData): ApplyRe
  * Open a quilt file without touching other sizes or settings. The device's
  * current quilt for that size is kept as an automatic version (by the usual
  * `addVersion` rules), the incoming design is written, and the file's versions
- * are merged into the size's list. If anything fails, the keys it touched go
+ * are merged into the size's list. A name in the file replaces the size's name,
+ * and a file without one keeps it. If anything fails, the keys it touched go
  * back to what they were.
  */
 export function applyQuiltBackup(
@@ -600,6 +632,8 @@ export function applyQuiltBackup(
     if (complete) writeGuideTo(storage, projectId, sizeId, 'done');
     else if (size.guide) writeGuideTo(storage, projectId, sizeId, size.guide);
     else removeGuideFrom(storage, projectId, sizeId);
+    // A file without a name leaves the name on this device alone.
+    if (size.quiltName) writeQuiltNameTo(storage, projectId, sizeId, size.quiltName);
     writeLastSizeTo(storage, projectId, sizeId);
     return { ok: true };
   } catch (err) {

@@ -137,6 +137,12 @@
   margin-bottom: 7mm;
 }
 
+.bs-subtitle {
+  margin-top: -2mm !important;
+  font-size: 14pt;
+  font-weight: 600;
+}
+
 .bs-facts {
   display: grid;
   grid-template-columns: max-content 1fr;

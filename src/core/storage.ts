@@ -18,6 +18,10 @@ const sizeKey = (projectId: string) => `${PREFIX}size:${projectId}`;
 const guideKey = (projectId: string, sizeId: string) => `${PREFIX}guide:${projectId}:${sizeId}`;
 const versionsKey = (projectId: string, sizeId: string) => `${PREFIX}versions:${projectId}:${sizeId}`;
 const excludedKey = (projectId: string) => `${PREFIX}excluded:${projectId}`;
+const nameKey = (projectId: string, sizeId: string) => `${PREFIX}name:${projectId}:${sizeId}`;
+
+/** Longest quilt name, in characters. */
+export const MAX_QUILT_NAME = 60;
 
 /** Steps of the guided setup, in order. 'intro' is the overview shown before the first counted step. */
 export const GUIDE_STEPS = ['intro', 'size', 'fabrics', 'blocks', 'touchups', 'done'] as const;
@@ -77,6 +81,19 @@ function write(key: string, value: string): boolean {
     return true;
   } catch {
     // Quota or privacy mode. The value just won't persist.
+    return false;
+  }
+}
+
+/** Like `write`, for removing a key. Skipped while writes are frozen. */
+function remove(key: string): boolean {
+  if (writesFrozen) return false;
+  try {
+    const s = store();
+    if (!s) return false;
+    s.removeItem(key);
+    return true;
+  } catch {
     return false;
   }
 }
@@ -241,12 +258,12 @@ export function saveVersions(projectId: string, sizeId: string, versions: readon
 }
 
 export type DataKey =
-  | { kind: 'design' | 'versions' | 'guide'; projectId: string; sizeId: string }
+  | { kind: 'design' | 'versions' | 'guide' | 'name'; projectId: string; sizeId: string }
   | { kind: 'size' | 'excluded'; projectId: string; sizeId: null };
 
-/** Split a key of a design, versions, guide, last size or hidden fabrics entry into its parts. Null for any other key. */
+/** Split a key of a design, versions, guide, quilt name, last size or hidden fabrics entry into its parts. Null for any other key. */
 export function parseDataKey(key: string): DataKey | null {
-  for (const kind of ['design', 'versions', 'guide'] as const) {
+  for (const kind of ['design', 'versions', 'guide', 'name'] as const) {
     const head = `${PREFIX}${kind}:`;
     if (!key.startsWith(head)) continue;
     const rest = key.slice(head.length);
@@ -261,9 +278,15 @@ export function parseDataKey(key: string): DataKey | null {
   return null;
 }
 
-/** The storage keys that hold one size's quilt, versions and guide progress, and the project's last size. */
+/** The storage keys that hold one size's quilt, versions, guide progress and name, and the project's last size. */
 export function quiltKeys(projectId: string, sizeId: string): string[] {
-  return [designKey(projectId, sizeId), versionsKey(projectId, sizeId), guideKey(projectId, sizeId), sizeKey(projectId)];
+  return [
+    designKey(projectId, sizeId),
+    versionsKey(projectId, sizeId),
+    guideKey(projectId, sizeId),
+    nameKey(projectId, sizeId),
+    sizeKey(projectId),
+  ];
 }
 
 export function removeGuideFrom(s: Pick<KeyValueStorage, 'removeItem'>, projectId: string, sizeId: string): void {
@@ -344,4 +367,44 @@ export function writeExcludedTo(s: Writer, projectId: string, ids: readonly stri
 
 export function saveExcluded(projectId: string, ids: readonly string[]): boolean {
   return write(excludedKey(projectId), JSON.stringify(ids));
+}
+
+/**
+ * A quilt name as the app keeps it: trimmed, runs of whitespace made one
+ * space, and at most `MAX_QUILT_NAME` characters. Anything that is not a
+ * string, or is blank, gives '', which means the quilt has no name.
+ */
+export function normalizeQuiltName(v: unknown): string {
+  if (typeof v !== 'string') return '';
+  const flat = v.replace(/\s+/g, ' ').trim();
+  // Count characters, not UTF-16 units, so an accent or emoji is never cut in half.
+  return Array.from(flat).slice(0, MAX_QUILT_NAME).join('').trim();
+}
+
+/** The stored name of one size's quilt, normalized. '' when there is none. */
+export function readQuiltNameFrom(s: Reader | null, projectId: string, sizeId: string): string {
+  const raw = readFrom(s, nameKey(projectId, sizeId));
+  return raw === null ? '' : normalizeQuiltName(raw);
+}
+
+export function loadQuiltName(projectId: string, sizeId: string): string {
+  return readQuiltNameFrom(store(), projectId, sizeId);
+}
+
+/** Store a name, normalized. An empty name removes the key. Throws when the write fails. */
+export function writeQuiltNameTo(s: Pick<KeyValueStorage, 'setItem' | 'removeItem'>, projectId: string, sizeId: string, name: string): void {
+  const clean = normalizeQuiltName(name);
+  if (clean === '') s.removeItem(nameKey(projectId, sizeId));
+  else s.setItem(nameKey(projectId, sizeId), clean);
+}
+
+/**
+ * Store a size's quilt name, normalized, and return what was stored. An empty
+ * name removes the key. If storage fails the name only lasts this session.
+ */
+export function saveQuiltName(projectId: string, sizeId: string, name: string): string {
+  const clean = normalizeQuiltName(name);
+  if (clean === '') remove(nameKey(projectId, sizeId));
+  else write(nameKey(projectId, sizeId), clean);
+  return clean;
 }

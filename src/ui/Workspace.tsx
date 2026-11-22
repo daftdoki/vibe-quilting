@@ -20,7 +20,8 @@ import {
   swapLineupSlots,
 } from '../core/design';
 import { piecesForSlot, resolvePieces } from '../core/layout';
-import { loadHintSeen, saveHintSeen } from '../core/storage';
+import { pngFileName, quiltFileBase } from '../core/fileName';
+import { loadHintSeen, loadQuiltName, saveHintSeen, saveQuiltName } from '../core/storage';
 import type { FabricDef, ProjectDef } from '../core/types';
 import { FabricTray } from './FabricTray';
 import { tapText } from './pointerWords';
@@ -36,6 +37,7 @@ import { sizeInches } from './format';
 import { Icon } from './Icon';
 import { imageCache } from './imageCache';
 import { Lineup } from './Lineup';
+import { NamePrompt, QuiltNameField } from './QuiltName';
 import { BuildSheetOverlay } from './print/BuildSheet';
 import { SaveMenu, type MenuAction } from './SaveMenu';
 import { QuiltCanvas, type QuiltCanvasHandle, type QuiltTap } from './QuiltCanvas';
@@ -50,6 +52,8 @@ import { REASONS, useVersions } from './versions/useVersions';
 import { VersionsList } from './versions/VersionsList';
 
 type Mode = 'fabrics' | 'blocks';
+/** The actions that use the quilt's name for a file, and so ask for one first. */
+type NamedAction = 'png' | 'save' | 'print';
 type SheetName =
   | 'lineup'
   | 'size'
@@ -103,6 +107,30 @@ export function Workspace({ project }: { project: ProjectDef }) {
   const [printOpen, setPrintOpen] = useState(
     () => location.hash === '#build-sheet' && !isEmptyDesign(ds.design),
   );
+
+  // The quilt's name. One per project and size, kept outside the design so it
+  // never touches undo or versions.
+  const [nameState, setNameState] = useState(() => ({
+    sizeId: design.sizeId,
+    name: loadQuiltName(project.id, design.sizeId),
+  }));
+  if (nameState.sizeId !== design.sizeId) {
+    // A size switch shows that size's own name.
+    setNameState({ sizeId: design.sizeId, name: loadQuiltName(project.id, design.sizeId) });
+  }
+  const quiltName = nameState.sizeId === design.sizeId ? nameState.name : '';
+  const saveName = useCallback(
+    (raw: string) => {
+      const name = saveQuiltName(project.id, design.sizeId, raw);
+      setNameState({ sizeId: design.sizeId, name });
+      return name;
+    },
+    [project.id, design.sizeId],
+  );
+  const quiltKey = `${project.id}:${design.sizeId}`;
+  // Quilts whose name prompt she answered with Not now. Memory only, so it asks again after a reload.
+  const skippedNames = useRef(new Set<string>());
+  const [namePrompt, setNamePrompt] = useState<NamedAction | null>(null);
 
   // The guide decides what taps do while it runs. Otherwise the Fabrics/Blocks toggle does.
   const tapMode: Mode | 'none' = guideControl?.mode ?? mode;
@@ -293,7 +321,8 @@ export function Workspace({ project }: { project: ProjectDef }) {
 
   // Start fresh is always on offer. It asks first only when there is something
   // to lose: fabric on the quilt, or excluded fabrics that would come back.
-  const freshNeedsConfirm = !isEmptyDesign(design) || excludedIds.size > 0;
+  // A name counts too, since a fresh start clears it.
+  const freshNeedsConfirm = !isEmptyDesign(design) || excludedIds.size > 0 || quiltName !== '';
   const openStartFresh = () => {
     if (freshNeedsConfirm) setSheet('confirm-guide');
     else startGuideOver();
@@ -312,6 +341,9 @@ export function Workspace({ project }: { project: ProjectDef }) {
     // A fresh start brings excluded fabrics back. The excluded list is one list
     // for every size, so they come back everywhere.
     if (excludedIds.size > 0) excluded.set(new Set());
+    // A fresh start is a new quilt, so it has no name yet and the prompt may ask again.
+    if (quiltName) saveName('');
+    skippedNames.current.delete(quiltKey);
     guide.start();
     setActiveId(null);
     setInfoKey(null);
@@ -361,10 +393,6 @@ export function Workspace({ project }: { project: ProjectDef }) {
   };
 
   const canSaveQuilt = !isEmptyDesign(design) || versions.list.length > 0;
-  const saveQuiltFile = () => {
-    setSheet(null);
-    void data.saveQuilt(project.id, design);
-  };
 
   // The build sheet. The #build-sheet hash keeps it open across a reload.
   const canPrint = !isEmptyDesign(design);
@@ -390,22 +418,50 @@ export function Workspace({ project }: { project: ProjectDef }) {
     history.replaceState(history.state, '', `${location.pathname}${location.search}${want}`);
   }, [printOpen]);
 
-  const doExport = async () => {
+  // Takes the name as an argument: one saved in the prompt a moment ago is not in state yet.
+  const doExport = async (name: string) => {
     if (exporting) return;
     setExporting(true);
     setSheet(null);
     try {
       const blob = await renderPng(scene);
-      const name = `${project.id}-${size.id}.png`;
+      const file = pngFileName(name, project.id, size.id);
       // False means she closed the share sheet without saving, so there is nothing to report.
-      const done = await shareOrDownload(blob, name, `${project.title}, ${size.name}`, 'image/png');
-      if (done) setToast(`Exported ${name}`);
+      const done = await shareOrDownload(blob, file, name || `${project.title}, ${size.name}`, 'image/png');
+      if (done) setToast(`Exported ${file}`);
     } catch {
       setToast('Export failed. Try again.');
     } finally {
       setExporting(false);
     }
   };
+
+  /** Run an action that names a file. Call it straight from a click, so sharing keeps the tap. */
+  const runNamed = (action: NamedAction, name: string) => {
+    setSheet(null);
+    setNamePrompt(null);
+    if (action === 'png') void doExport(name);
+    else if (action === 'save') void data.saveQuilt(project.id, design, name);
+    else openPrint();
+  };
+  /** Ask for a name first when the quilt has none and she has not said Not now for it this session. */
+  const askName = (action: NamedAction) => {
+    if (quiltName || skippedNames.current.has(quiltKey)) {
+      runNamed(action, quiltName);
+      return;
+    }
+    setSheet(null);
+    setNamePrompt(action);
+  };
+  const exportPng = () => askName('png');
+  const saveQuiltFile = () => askName('save');
+  const printSheet = () => askName('print');
+
+  // The tab title, and the build sheet's title so Save as PDF proposes the quilt's name.
+  useEffect(() => {
+    const base = quiltFileBase(quiltName);
+    document.title = printOpen && base ? base : quiltName ? `${quiltName} · Vibe Quilting` : 'Vibe Quilting';
+  }, [quiltName, printOpen]);
 
   // Keyboard shortcuts.
   useEffect(() => {
@@ -623,10 +679,12 @@ export function Workspace({ project }: { project: ProjectDef }) {
       slotPieces={slotPieces}
       wide={wide}
       exporting={exporting}
-      onExport={doExport}
+      onExport={exportPng}
       onSaveQuilt={saveQuiltFile}
       canSaveQuilt={canSaveQuilt}
-      onPrint={openPrint}
+      onPrint={printSheet}
+      quiltName={quiltName}
+      onSaveName={saveName}
       canPrint={canPrint}
       onHelp={() => setSheet('help')}
       onExplainFatQuarter={() => setSheet('fat-quarter')}
@@ -665,7 +723,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
       description: 'A picture of this quilt to share.',
       disabled: exporting,
       dividerBefore: true,
-      onSelect: () => void doExport(),
+      onSelect: exportPng,
     },
     {
       key: 'print',
@@ -673,26 +731,37 @@ export function Workspace({ project }: { project: ProjectDef }) {
       label: 'Print build sheet',
       description: canPrint ? 'A black and white reference for cutting and sewing.' : 'Nothing to print yet.',
       disabled: !canPrint,
-      onSelect: openPrint,
+      onSelect: printSheet,
     },
   ];
 
   return (
     <div className={`app ${wide ? 'is-wide' : 'is-narrow'} mode-${tapMode}${guide.active ? ' is-guided' : ''}`}>
       <header className="topbar">
-        <button
-          type="button"
-          className="title-btn"
-          onClick={() => setSheet('size')}
-          aria-label={`${project.title}. Size ${size.name}, ${sizeInches(pattern, size)}. Change size`}
-        >
-          <span className="title">{project.title}</span>
-          <span className="size-chip">
-            <span className="size-chip-name">{size.name}</span>
-            <span className="size-chip-dim">{sizeInches(pattern, size)}</span>
-            <Icon name="chevron" size={16} />
-          </span>
-        </button>
+        <div className="title-block">
+          <QuiltNameField key={quiltKey} name={quiltName} onSave={saveName} />
+          <div className="title-sub">
+            {/* The project's title. On a phone there is no room, and it still shows in How to use and the build sheet. */}
+            {wide && (
+              <span className="project-label">
+                {project.title}
+                <span aria-hidden="true"> ·</span>
+              </span>
+            )}
+            <button
+              type="button"
+              className="size-chip-btn"
+              onClick={() => setSheet('size')}
+              aria-label={`Size ${size.name}, ${sizeInches(pattern, size)}. Change size`}
+            >
+              <span className="size-chip">
+                <span className="size-chip-name">{size.name}</span>
+                <span className="size-chip-dim">{sizeInches(pattern, size)}</span>
+                <Icon name="chevron" size={16} />
+              </span>
+            </button>
+          </div>
+        </div>
         {wide && (guide.active ? <span aria-hidden="true" /> : modeToggle)}
         <div className="topbar-actions">
           {undoRedo}
@@ -1071,6 +1140,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
         {versions.list.length > 0 && (
           <p className="confirm-text">Your saved versions for this size are kept.</p>
         )}
+        {quiltName && <p className="confirm-text">The name {quiltName} is cleared too.</p>}
         <div className="confirm-actions">
           <button type="button" className="btn btn-ghost" onClick={() => setSheet(null)}>
             Keep my quilt
@@ -1103,11 +1173,26 @@ export function Workspace({ project }: { project: ProjectDef }) {
           </button>
         </div>
       </Sheet>
+      <Sheet open={namePrompt !== null} title="Name your quilt" onClose={() => setNamePrompt(null)}>
+        <NamePrompt
+          onSave={(raw) => {
+            if (!namePrompt) return;
+            // Stored before the action runs, because a quilt file reads the name from storage.
+            runNamed(namePrompt, saveName(raw));
+          }}
+          onSkip={() => {
+            if (!namePrompt) return;
+            skippedNames.current.add(quiltKey);
+            runNamed(namePrompt, '');
+          }}
+        />
+      </Sheet>
       <DataSheets data={data} />
       {printOpen && (
         <BuildSheetOverlay
           project={project}
           design={design}
+          quiltName={quiltName}
           onClose={closePrint}
           fallbackFocus={wide ? saveMenuBtnRef : moreBtnRef}
         />

@@ -114,39 +114,127 @@ ol {
 .topbar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   min-height: 60px;
-  padding: 6px 8px 6px 6px;
+  padding: 2px 8px 2px 4px;
 }
 
-.title-btn {
+/*
+ * Top left: the quilt's name over the size button. Two 44px targets stacked,
+ * so the bar is about 92px tall. The block takes what the buttons leave and
+ * the name ellipsizes, so Undo, Redo and the three dots never leave the screen.
+ */
+.title-block {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
+  align-items: stretch;
   min-width: 0;
-  min-height: 44px;
   margin-right: auto;
-  padding: 4px 10px;
-  border: 0;
-  border-radius: 14px;
-  background: none;
-  text-align: left;
 }
 
-.title-btn:hover {
-  background: rgba(255, 244, 251, 0.06);
+.name-field {
+  position: relative;
+  display: block;
+  min-width: 0;
 }
 
-.title {
-  max-width: 100%;
-  overflow: hidden;
+/* Reads as a heading. 16px or more, or iOS zooms the page when it gets focus. */
+.name-input {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 30px 0 8px;
+  border: 1.5px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
   font-size: 18px;
   font-weight: 800;
   letter-spacing: -0.025em;
   line-height: 1.15;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.name-input::placeholder {
+  color: var(--ink-dim);
+  opacity: 1;
+  font-size: 15px;
+  font-weight: 550;
+  letter-spacing: 0;
+}
+
+/* Empty: a dashed edge says it is a field to fill in. */
+.name-field.is-empty .name-input {
+  border-color: rgba(199, 179, 230, 0.45);
+  border-style: dashed;
+}
+
+.name-input:hover {
+  background: rgba(255, 244, 251, 0.06);
+}
+
+.name-input:focus {
+  border-style: solid;
+  border-color: var(--ink-dim);
+  background: var(--mat);
+  text-overflow: clip;
+}
+
+.name-pencil {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: grid;
+  color: var(--ink-dim);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.name-input:focus + .name-pencil {
+  display: none;
+}
+
+.title-sub {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+/* The project's title, wide layout only. It gives up its room before the size does. */
+.project-label {
+  flex: 0 100 auto;
+  min-width: 0;
+  padding-left: 10px;
+  overflow: hidden;
+  font-size: 15px;
+  color: var(--ink-dim);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.size-chip-btn {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  text-align: left;
+}
+
+.project-label + .size-chip-btn {
+  padding-left: 6px;
+}
+
+.size-chip-btn:hover {
+  background: rgba(255, 244, 251, 0.06);
 }
 
 .size-chip {
@@ -632,16 +720,16 @@ ol {
 
 .is-wide .topbar {
   display: grid;
-  /* The title shrinks with an ellipsis before the buttons can overflow. */
-  grid-template-columns: minmax(0, max-content) auto minmax(max-content, 1fr);
+  /* The name block shrinks with an ellipsis before the buttons can overflow. */
+  grid-template-columns: minmax(0, clamp(240px, 26vw, 380px)) auto minmax(max-content, 1fr);
   column-gap: 16px;
   min-height: 64px;
-  padding: 8px 12px 8px 10px;
+  padding: 2px 12px 2px 6px;
   border-bottom: 1px solid var(--line);
 }
 
-.is-wide .title {
-  font-size: 20px;
+.is-wide .title-block {
+  margin-right: 0;
 }
 
 .is-wide .topbar-actions {
@@ -1118,6 +1206,55 @@ ol {
 
 .guide-back:hover:not(:disabled) {
   background: #ffffff;
+}
+
+/* Skip touch-ups and Skip the guide: solid cyan, so "skip" stands out from the card and looks the same in both places. */
+.guide-skip {
+  background: var(--cyan);
+  color: var(--ink-dark);
+  font-weight: 700;
+}
+
+.guide-skip:hover:not(:disabled) {
+  background: #74eef0;
+}
+
+/* The quilt's name on the guide's last screen. */
+.guide-name {
+  display: grid;
+  gap: 6px;
+}
+
+.guide-name p,
+.guide-name-line {
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.guide-name-line strong {
+  overflow-wrap: anywhere;
+}
+
+.guide-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.guide-name-input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The Name your quilt sheet. */
+.name-prompt {
+  display: grid;
+  gap: 12px;
+}
+
+.name-prompt .confirm-actions {
+  margin-top: 8px;
 }
 
 .guide-back svg,
@@ -1735,8 +1872,8 @@ html.is-dragging * {
 }
 
 @media (max-width: 380px) {
-  .title {
-    font-size: 16px;
+  .name-input {
+    font-size: 17px;
   }
 
   .dock-bar .btn {
@@ -1759,10 +1896,13 @@ html.is-dragging * {
 
 /*
  * Top bar buttons with labels. Labels drop to icons as the bar gets tight.
- * Estimated widths with the title in full: about 1060px with every label,
- * 955px with Undo and Redo as icons, 875px with Versions as an icon too, and
- * 760px with only icons. The title column can shrink with an ellipsis, so the
- * buttons never overflow even if an estimate is off.
+ * The estimates were made with the old title button, about 235px wide: about
+ * 1060px with every label, 955px with Undo and Redo as icons, 875px with
+ * Versions as an icon too, and 760px with only icons. The name block now
+ * wants clamp(240px, 26vw, 380px), which is 291px at 1119px, 260px at 999px
+ * and 244px at 939px. That adds about 56, 25 and 9px, so each tier still
+ * fits at its own breakpoint. The name column can shrink with an ellipsis,
+ * so the buttons never overflow even if an estimate is off.
  */
 .topbar-btn {
   padding: 0 14px 0 12px;
@@ -2069,12 +2209,23 @@ html.is-dragging * {
   font-size: 17px;
 }
 
-.is-wide .title {
+.is-wide .name-input {
   font-size: 22px;
 }
 
-.is-wide .size-chip {
+.is-wide .name-input::placeholder {
+  font-size: 17px;
+}
+
+.is-wide .size-chip,
+.is-wide .project-label {
   font-size: 16px;
+}
+
+.is-wide .guide-name p,
+.is-wide .guide-name-line,
+.is-wide .guide-intro-after p {
+  font-size: 17px;
 }
 
 .is-wide .btn {
@@ -2470,6 +2621,28 @@ html.is-dragging * {
   color: var(--ink);
 }
 
+.guide-intro-after {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+}
+
+.guide-intro-after h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.guide-intro-after p {
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.guide-intro-after .btn {
+  margin-top: 2px;
+}
+
 .guide-intro-help {
   display: grid;
   gap: 6px;
@@ -2500,6 +2673,7 @@ html.is-dragging * {
   font-size: 17px;
 }
 
-.is-wide .guide-intro-help h3 {
+.is-wide .guide-intro-help h3,
+.is-wide .guide-intro-after h3 {
   font-size: 17px;
 }

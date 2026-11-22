@@ -60,18 +60,23 @@ export function BuildSheetPages({
   sheet,
   cardSize,
   printed,
+  quiltName = '',
 }: {
   project: ProjectDef;
   sheet: BuildSheet;
   cardSize: CardSize;
   printed: string;
+  /** The quilt's name. Empty when it has none, and the project title is the heading. */
+  quiltName?: string;
 }) {
   const { pattern } = project;
   const { summary } = sheet;
   const spec = CARD_SPECS[cardSize];
   const perPage = spec.cols * spec.rows;
   const fabricByNo = new Map(sheet.fabrics.map((f) => [f.number, f]));
-  const running = `${project.title}, ${summary.sizeName}`;
+  const running = quiltName
+    ? `${quiltName}, ${project.title}, ${summary.sizeName}`
+    : `${project.title}, ${summary.sizeName}`;
   const lines = shortageLines(sheet);
   const notes = pattern.buildNotes ?? [];
   const firstLabel = pattern.block.pieces[0]?.label ?? '';
@@ -92,7 +97,12 @@ export function BuildSheetPages({
         'first',
         <>
           <header className="bs-head">
-            <h1>{project.title}</h1>
+            <h1>{quiltName || project.title}</h1>
+            {quiltName && (
+              <p className="bs-subtitle">
+                {project.title}, {summary.sizeName}
+              </p>
+            )}
             <dl className="bs-facts">
               <dt>Size</dt>
               <dd>{summary.sizeName}</dd>
@@ -276,11 +286,14 @@ export function BuildSheetPages({
 export function BuildSheetOverlay({
   project,
   design,
+  quiltName,
   onClose,
   fallbackFocus,
 }: {
   project: ProjectDef;
   design: Design;
+  /** The quilt's name, for the heading. The workspace sets the page title. */
+  quiltName: string;
   onClose(): void;
   /** Where focus goes on close if the element that had it is gone. */
   fallbackFocus?: React.RefObject<HTMLElement | null>;
@@ -371,7 +384,7 @@ export function BuildSheetOverlay({
       </div>
       <div ref={scrollRef} className="bs-scroll">
         <div className="bs-pages" style={{ zoom }}>
-          <BuildSheetPages project={project} sheet={sheet} cardSize={cardSize} printed={printed} />
+          <BuildSheetPages project={project} sheet={sheet} cardSize={cardSize} printed={printed} quiltName={quiltName} />
         </div>
       </div>
     </div>,

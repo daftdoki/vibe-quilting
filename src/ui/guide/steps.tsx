@@ -7,6 +7,7 @@ import { inches, repeatNote } from '../format';
 import { quiltSizeInches } from '../../core/layout';
 import { Icon } from '../Icon';
 import { tapText } from '../pointerWords';
+import { GuideNameField } from '../QuiltName';
 import { REASONS, type CheckpointUpdate } from '../versions/useVersions';
 import { COUNTED_STEPS, type Guide } from './useGuide';
 import { TITLES } from './titles';
@@ -344,7 +345,7 @@ export function TouchupsStep({ guide }: { guide: Guide }) {
       <button type="button" className="btn btn-small btn-primary" onClick={guide.next}>
         {last ? 'Finish' : 'Next block'}
       </button>
-      <button type="button" className="btn btn-small btn-text" onClick={guide.skipTouchups}>
+      <button type="button" className="btn btn-small guide-skip" onClick={guide.skipTouchups}>
         Skip touch-ups
       </button>
     </div>
@@ -359,6 +360,8 @@ export function DoneStep({
   canSaveQuilt,
   onPrint,
   canPrint,
+  quiltName,
+  onSaveName,
   onHelp,
   onKeepEditing,
 }: {
@@ -369,6 +372,8 @@ export function DoneStep({
   canSaveQuilt: boolean;
   onPrint(): void;
   canPrint: boolean;
+  quiltName: string;
+  onSaveName(name: string): void;
   onHelp(): void;
   onKeepEditing(): void;
 }) {
@@ -388,6 +393,13 @@ export function DoneStep({
       ];
   return (
     <>
+      {quiltName ? (
+        <p className="guide-name-line">
+          Quilt name: <strong>{quiltName}</strong>
+        </p>
+      ) : (
+        <GuideNameField onSave={onSaveName} />
+      )}
       <div className="guide-row">
         <button type="button" className="btn btn-small btn-primary" onClick={onExport} disabled={exporting}>
           <Icon name="download" size={18} />
@@ -432,8 +444,8 @@ const STEP_LINES: Partial<Record<GuideStepId, string>> = {
   touchups: 'Change single pieces if you want to. You can skip this.',
 };
 
-/** The opening overview: the steps in order, then where to get help. */
-export function IntroStep() {
+/** The opening overview: the steps in order, what comes after them, then where to get help. */
+export function IntroStep({ onSkip }: { onSkip(): void }) {
   return (
     <>
       <ol className="guide-intro-steps">
@@ -444,6 +456,14 @@ export function IntroStep() {
           </li>
         ))}
       </ol>
+      <div className="guide-intro-after">
+        <h3>After the steps</h3>
+        <p>When the steps are done, you can keep changing anything on the main screen.</p>
+        <p>Prefer to do it all by hand? Skip the guide and work on the quilt directly.</p>
+        <button type="button" className="btn btn-small guide-skip" onClick={onSkip}>
+          Skip the guide
+        </button>
+      </div>
       <div className="guide-intro-help">
         <h3>Where to get help</h3>
         <ul>

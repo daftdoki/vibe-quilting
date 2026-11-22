@@ -23,7 +23,7 @@ import {
   type StorageCounts,
 } from '../../core/backup';
 import { isEmptyDesign } from '../../core/design';
-import { readDesignFrom, setWritesFrozen } from '../../core/storage';
+import { readDesignFrom, readQuiltNameFrom, setWritesFrozen } from '../../core/storage';
 import type { Design } from '../../core/types';
 import { shareOrDownload } from '../exportPng';
 import { BACKUP_CONTEXT } from './context';
@@ -48,7 +48,7 @@ const NO_DATA: StorageCounts = { quilts: 0, versions: 0, sizeIds: [], entries: 0
 export type DataSheet =
   | { kind: 'notice'; title: string; text: string }
   | { kind: 'import'; file: ImportData; summary: BackupSummary }
-  | { kind: 'quilt'; file: ImportData; summary: BackupSummary; deviceHasQuilt: boolean }
+  | { kind: 'quilt'; file: ImportData; summary: BackupSummary; deviceHasQuilt: boolean; deviceName: string }
   | { kind: 'clear' };
 
 export interface DataTransfer {
@@ -61,8 +61,11 @@ export interface DataTransfer {
   /** Read storage again. Call when the menu opens. */
   refresh(): void;
   exportData(): Promise<void>;
-  /** Save a file with this size's quilt and versions. Pass the live design. */
-  saveQuilt(projectId: string, design: Design): Promise<void>;
+  /**
+   * Save a file with this size's quilt and versions. Pass the live design and
+   * the quilt's name, which the caller may have saved a moment ago.
+   */
+  saveQuilt(projectId: string, design: Design, quiltName: string): Promise<void>;
   /** Open the system file picker. */
   pickFile(): void;
   onFileChosen(e: ChangeEvent<HTMLInputElement>): void;
@@ -133,13 +136,13 @@ export function useDataTransfer(notify: (message: string) => void): DataTransfer
   }, [notify]);
 
   const saveQuilt = useCallback(
-    async (projectId: string, design: Design) => {
+    async (projectId: string, design: Design, quiltName: string) => {
       const s = storage();
       if (!s || exporting.current) return;
       exporting.current = true;
       try {
         const now = new Date();
-        const name = quiltFileName(design.sizeId, now);
+        const name = quiltFileName(design.sizeId, now, quiltName);
         const text = serializeBackup(buildQuiltBackup(s, now, BACKUP_CONTEXT, projectId, design.sizeId, design));
         const done = await shareOrDownload(new Blob([text], { type: 'application/json' }), name, 'Vibe Quilting quilt', 'application/json');
         if (done) notify(`Saved ${name}`);
@@ -177,12 +180,14 @@ export function useDataTransfer(notify: (message: string) => void): DataTransfer
         setDevice(readDevice());
         const { quilt } = parsed.summary;
         if (parsed.summary.scope === 'quilt' && quilt) {
-          const current = readDesignFrom(storage(), quilt.projectId, quilt.sizeId);
+          const s = storage();
+          const current = readDesignFrom(s, quilt.projectId, quilt.sizeId);
           setSheet({
             kind: 'quilt',
             file: parsed.file,
             summary: parsed.summary,
             deviceHasQuilt: current !== null && !isEmptyDesign(current),
+            deviceName: readQuiltNameFrom(s, quilt.projectId, quilt.sizeId),
           });
           return;
         }
@@ -219,7 +224,7 @@ export function useDataTransfer(notify: (message: string) => void): DataTransfer
 
   const confirmQuilt = useCallback(() => {
     if (sheet?.kind !== 'quilt' || !sheet.summary.quilt) return;
-    const { sizeName } = sheet.summary.quilt;
+    const { sizeName, quiltName } = sheet.summary.quilt;
     const s = storage();
     if (!s) {
       setSheet({ kind: 'notice', title: IMPORT_ERROR_TITLE, text: QUILT_FAILED });
@@ -237,7 +242,7 @@ export function useDataTransfer(notify: (message: string) => void): DataTransfer
       });
       return;
     }
-    reloadWith(QUILT_OPENED(sizeName));
+    reloadWith(QUILT_OPENED(sizeName, quiltName));
   }, [sheet]);
 
   const confirmClear = useCallback(() => {

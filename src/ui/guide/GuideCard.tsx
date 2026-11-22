@@ -31,6 +31,9 @@ interface Props {
   canSaveQuilt: boolean;
   onPrint(): void;
   canPrint: boolean;
+  /** The quilt's name, '' when it has none. */
+  quiltName: string;
+  onSaveName(name: string): void;
   onHelp(): void;
   /** Opens the picture of how a fat quarter is cut and shuffled. */
   onExplainFatQuarter(): void;
@@ -78,7 +81,7 @@ function tip(step: GuideStepId, wide: boolean): string | null {
     case 'intro':
       return null;
     case 'size':
-      return 'Each size keeps its own design, and you can change size later by tapping the title at the top.';
+      return 'Each size keeps its own design, and you can change size later by tapping the size at the top of the screen.';
     case 'fabrics':
       // This step is the fullest on a phone, so its zoom tip lives in the blocks step.
       return null;
@@ -130,7 +133,7 @@ export function GuideCard(props: Props) {
   let body: ReactNode = null;
   switch (step) {
     case 'intro':
-      body = <IntroStep />;
+      body = <IntroStep onSkip={guide.exit} />;
       break;
     case 'size':
       body = <SizeStep guide={guide} pattern={project.pattern} design={design} />;
@@ -165,6 +168,8 @@ export function GuideCard(props: Props) {
           canSaveQuilt={props.canSaveQuilt}
           onPrint={props.onPrint}
           canPrint={props.canPrint}
+          quiltName={props.quiltName}
+          onSaveName={props.onSaveName}
           onHelp={onHelp}
           onKeepEditing={guide.exit}
         />
@@ -264,6 +269,13 @@ export function GuideCard(props: Props) {
             This is where you balance the quilt. Turning every other block, as the pattern suggests, stops the same
             shapes lining up from block to block. Move a block when two alike fabrics sit side by side, or one area
             looks too dark or too busy. Aim for the colours to look evenly spread.
+          </p>
+        )}
+        {step === 'touchups' && (
+          <p>
+            This step is optional. It goes through the quilt one block at a time so you can change a single piece,
+            for example where two alike fabrics touch or one piece stands out too much. Each change swaps just that
+            piece. Skip it if you are happy with the quilt.
           </p>
         )}
         <p>{tapText(instruction(step, props))}</p>

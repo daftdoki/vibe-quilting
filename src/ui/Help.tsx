@@ -35,7 +35,8 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
       title: 'Guided setup',
       steps: [
         'The guide takes an empty quilt to a finished design one step at a time. It starts on its own the first time you open a size, and again when you tap Start fresh.',
-        `It opens with an overview called ${TITLES.intro}. It lists each step with one line on what happens there, and a Where to get help box. Tap Start to go to Quilt size, or How to use to open this guide. The overview does not show when you resume the guide or tap Finish setup.`,
+        `It opens with an overview called ${TITLES.intro}. It lists each step with one line on what happens there, then an After the steps section, then a Where to get help box. Tap Start to go to Quilt size, or How to use to open this guide. The overview does not show when you resume the guide or tap Finish setup.`,
+        'After the steps says that once the steps are done you can keep changing anything on the main screen, and that you can skip the guide and work on the quilt by hand. Its Skip the guide button does the same as Exit guide.',
         wide
           ? `The guide card sits at the top of the side panel. After the overview it has ${COUNTED_STEPS.length} steps and a closing step. The counter at its top says which step you are on, and reads Before you start on the overview.`
           : `The guide card sits under the quilt, above the fabrics. After the overview it has ${COUNTED_STEPS.length} steps and a closing step. The counter at its top says which step you are on, and reads Before you start on the overview.`,
@@ -55,15 +56,17 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
         'If you tap Next while some fat quarters are still empty, the guide asks first. Fill the rest and go on fills them and moves on. Keep picking stays on the step.',
         'Turn and move blocks: this is where you balance the quilt, and the step says so at the top. Turning every other block stops the same shapes lining up from block to block. Move a block when two alike fabrics sit side by side, or one area looks too dark or too busy, until the colours look evenly spread.',
         'In that step, pick Turn every other block or All the same way up, then tap blocks to swap or turn them.',
-        'Touch-ups: the quilt zooms to one block at a time so you can paint pieces. Use Previous block and Next block, or Skip touch-ups. On the last block, Next block becomes Finish. These buttons are in one row under the step counter, with Back.',
+        'Touch-ups: this step is optional, and it says so at the top. It is for changing a single piece, for example where two alike fabrics touch or one piece stands out too much. The quilt zooms to one block at a time so you can paint pieces. Use Previous block and Next block, or Skip touch-ups. On the last block, Next block becomes Finish. These buttons are in one row under the step counter, with Back.',
         'Your quilt is ready: export a picture, save a quilt file, print a build sheet, or tap Keep editing to close the guide. A list shows where things are once the guide is closed.',
+        'If the quilt has no name yet, that screen has a name field with a Save name button above those buttons. If it has a name, the name shows there instead. See Name your quilt.',
         'Back and Next are near the top of the guide card, under the step counter. Back is white with an arrow pointing left, and Next is yellow with an arrow pointing right. Back goes to the previous step and keeps your changes. On Quilt size, Back goes to the overview. The overview has no Back. Start and How to use sit there instead. Next is not shown on Touch-ups or on the last screen, which have their own buttons. Exit guide, at the top right of the card, closes it at any step and leaves the quilt as it is.',
         'The guide remembers its step for each size, so a reload or a size switch picks up where you were.',
         'If any fat quarters are still empty after you leave the guide, a Finish setup button shows at the top left of the quilt. Tap it to go back to the Pick your fabrics step.',
         'To open the guide again on the quilt you have, open the three dots menu and tap Resume the guide. It keeps the quilt as it is and opens at Pick your fabrics if any fat quarters are empty, otherwise at Turn and move blocks. It is not in the menu while the guide is open.',
         'To set up a size again from scratch, tap Start fresh at the top left of the quilt. It is also in the three dots menu. It empties the quilt for the size you have open and starts the guide from the overview. Other sizes are not touched.',
-        'Start fresh is always there, on the quilt and in the three dots menu. On an empty quilt with no excluded fabrics it goes straight back to the overview without asking, which is the quick way to pick a different size.',
-        'When the quilt has fabric on it, or a fabric is excluded, Start fresh asks first. Saved versions for the size are kept, and the quilt you had is saved as an automatic version. Undo brings the quilt back too. To delete versions, use Delete in the Versions list.',
+        'Start fresh is always there, on the quilt and in the three dots menu. On an empty quilt with no name and no excluded fabrics it goes straight back to the overview without asking, which is the quick way to pick a different size.',
+        'When the quilt has fabric on it, has a name, or a fabric is excluded, Start fresh asks first. Saved versions for the size are kept, and the quilt you had is saved as an automatic version. Undo brings the quilt back too. To delete versions, use Delete in the Versions list.',
+        'Start fresh also clears the quilt\'s name, because a fresh start is a new quilt. The confirm screen says so. Undo does not bring the name back.',
         'If you excluded any fabrics, Start fresh brings them back, so every fabric can be picked again, and the confirm screen says so. The excluded list is one list for every size, so they come back in every size, and Undo does not exclude them again. To start over and keep a fabric out, exclude it again in Pick your fabrics.',
       ],
     },
@@ -159,9 +162,27 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
       icon: 'ruler',
       title: 'Change the quilt size',
       steps: [
-        'Tap the title at the top to pick a size.',
+        'Tap the size at the top left, under the quilt\'s name, to pick a size.',
         'Each size shows its name, its grid of blocks, and its finished size in inches. The current one has a check mark.',
         'Each size keeps its own design, so you can switch back without losing anything.',
+        'Each size also has its own name, so after a switch the top shows that size\'s name.',
+      ],
+    },
+    {
+      icon: 'pencil',
+      title: 'Name your quilt',
+      steps: [
+        wide
+          ? 'The quilt\'s name goes in the field at the top left of the screen, above the size. When it is empty it says Type a name for your quilt in grey and has a dashed edge. The pencil at its right edge shows you can change it. Beside the size, in grey, is the pattern and fabric collection.'
+          : 'The quilt\'s name goes in the field at the top left of the screen, above the size. When it is empty it says Type a name for your quilt in grey and has a dashed edge. The pencil at its right edge shows you can change it.',
+        'Tap the field and type. Enter, Done on the keyboard, or tapping somewhere else saves it. Escape puts back the name it had. A name can be up to 60 characters. Empty the field to remove the name.',
+        'The name is used for the files you save. Export PNG names the picture after it, such as Ginger\'s Quilt.png. Save quilt file names the file after it, then the date. Print build sheet puts it at the top of page 1. The browser tab shows it too. Export data keeps its own name, because it holds every quilt.',
+        'Characters that a file name cannot hold, such as / ? : * " < > | and \\, are left out of file names. The name itself keeps them.',
+        'If the quilt has no name when you tap Export PNG, Save quilt file or Print build sheet, the app asks for one first. Save name and continue saves the name and carries on. Not now carries on with the usual file name, and the app does not ask again for that quilt until you reload the page or tap Start fresh. The close button or Escape cancels, and nothing is saved or printed.',
+        'Each size has its own name. Switching size shows that size\'s name, or the empty field.',
+        'Start fresh clears the name, and its confirm screen says so. Undo does not bring it back. Undo and redo never change the name.',
+        'The name travels in quilt files and full exports. Opening a quilt file that has a name gives the quilt that name. A file without one keeps the name you have here. Importing a full export replaces every name with the ones in the file.',
+        'Saved versions keep their own names. Naming the quilt does not change them.',
       ],
     },
     {
@@ -172,7 +193,7 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
           ? 'Undo and Redo at the top step back and forward through your changes. On narrower screens they show as arrows.'
           : 'The arrows at the top undo and redo your changes. A short note on the quilt says Undone or Redone each time.',
         'The first time each one can be used after you open the app, it glows once.',
-        'Undo covers changes to the quilt: fabrics on pieces, the fat quarter stack, and blocks. It does not undo saving, renaming or deleting a version, a size switch, or excluding a fabric. After excluding a fabric, Undo brings back the quilt, but the fabric stays excluded.',
+        'Undo covers changes to the quilt: fabrics on pieces, the fat quarter stack, and blocks. It does not undo saving, renaming or deleting a version, naming the quilt, a size switch, or excluding a fabric. After excluding a fabric, Undo brings back the quilt, but the fabric stays excluded.',
         'Each size has its own undo history of up to 99 changes. It lasts until you reload the page.',
         'After a reload, open Versions to get back an earlier layout. The app saves an automatic version before each big change.',
       ],
@@ -214,6 +235,7 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
         'Save & export has four actions. Save quilt file and Open a quilt file save the quilt to a file and bring one back. Export PNG makes a picture. Print build sheet opens a black and white sheet to cut and sew from. See Print a build sheet.',
         exportPlace,
         'Export PNG makes a picture of the quilt you have open. On a phone or tablet it opens the share sheet where it can. Otherwise the file downloads. A picture cannot be opened again for editing. To keep the quilt itself, use Save quilt file.',
+        'The picture is named after the quilt, such as Ginger\'s Quilt.png. A quilt with no name gives a file named after the project and the size.',
       ],
     },
     {
@@ -226,12 +248,12 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
         'It is off while the quilt is empty.',
         'The build sheet is a reference to cut and sew from. It opens as a preview of the pages. Tap Print to print them, and Close or Escape to go back to the quilt.',
         'It prints in black and white with thin lines and no fabric pictures, so it uses little ink. Numbers stand for fabrics. Write each number on its fat quarter before you cut.',
-        'Page 1 starts with the size, the finished size, the grid of blocks, how many fat quarters to buy, and the date. It lists the fabrics by number with name, SKU and how many fat quarters to buy, with a box to tick when you have each one. Then comes the stacking order: the order to pile the fat quarters before you cut, with number 1 on top.',
+        'Page 1 has the quilt\'s name as its heading, with the project and size under it. A quilt with no name has the project as its heading. Then come the size, the finished size, the grid of blocks, how many fat quarters to buy, and the date. It lists the fabrics by number with name, SKU and how many fat quarters to buy, with a box to tick when you have each one. Then comes the stacking order: the order to pile the fat quarters before you cut, with number 1 on top.',
         'Then there is one card per block, in block number order. Each card draws the block the same way up, with the fabric number in each piece and the piece letter in its top left corner. A number you placed by hand is underlined, and the card says which pieces changed. An empty piece shows a dash. Each card has a Sewn box to tick.',
         'Large cards fit 4 to a page. Compact cards fit 9 to a page and use less paper. Pick one at the top of the preview.',
         'On its own page after the cards, a map shows where each block goes, with Row 1 at the top. Each block has its number in the middle. Only its first piece is drawn, with its letter, to show which way up to turn the block. If you placed pieces by hand, a table lists them.',
         'If you placed one fabric on more pieces of one letter than its fat quarters give, the sheet says how many more fat quarters of it to buy. A fat quarter gives one piece of each letter.',
-        'To keep a copy, pick Save as PDF in your printer choices. The preview stays open after a reload until you close it.',
+        'To keep a copy, pick Save as PDF in your printer choices. When the quilt has a name, most browsers offer it as the PDF\'s file name. The preview stays open after a reload until you close it.',
       ],
     },
     {
@@ -245,20 +267,20 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
         wide
           ? 'Open a quilt file, in Save & export, opens a quilt file or a full export. It does the same as Import data in the three dots menu.'
           : 'Open a quilt file, under Save & export in the three dots menu, opens a quilt file or a full export. It does the same as Import data.',
-        'Save quilt file makes one file with the quilt for the size you have open, all its saved versions, and where you were in the guide. It is named vibe-quilting, the size, then the date. It is off while the quilt is empty and the size has no versions.',
+        'Save quilt file makes one file with the quilt for the size you have open, all its saved versions, where you were in the guide, and its name. It is named after the quilt, then the date, such as Ginger\'s Quilt 2026-11-21. A quilt with no name gives vibe-quilting, the size, then the date. It is off while the quilt is empty and the size has no versions.',
         'Open the three dots menu. Your data is at the bottom, with Export data, Import data and Clear all data.',
-        'Export data saves one file with everything: the quilt for every size, all your saved versions, where you were in the guide, and the fabrics you excluded. It is named vibe-quilting, then the date.',
+        'Export data saves one file with everything: the quilt for every size, all your saved versions, the names of your quilts, where you were in the guide, and the fabrics you excluded. It is named vibe-quilting, then the date.',
         'On a phone or tablet, Save quilt file and Export data open the share sheet where it can, so you can save the file to Files, AirDrop it, or send it to yourself. Otherwise the file downloads. Keep it somewhere safe as a backup.',
         'To move to another device, save a file on the first one. Send the file to yourself, or save it where both devices can reach it. On the other device, open the three dots menu, tap Import data and pick the file. Import data opens either kind of file.',
-        'Opening a quilt file replaces only that one size. The quilt you had in that size is kept as an automatic version called Before opening a file. It is not kept if that size was empty, already held the same quilt, or matches its newest version. The versions in the file are added to yours, without copies. The other sizes are not touched, and the fabrics you excluded stay excluded. The app then reloads on that size. You can undo it by restoring that automatic version from Versions.',
-        'A full export is different. Import data replaces everything on the device you run it on. The quilts and versions there are erased, and it cannot be undone. The app shows what the file holds and what will be erased before it does anything.',
+        'Opening a quilt file replaces only that one size. The quilt you had in that size is kept as an automatic version called Before opening a file. It is not kept if that size was empty, already held the same quilt, or matches its newest version. The versions in the file are added to yours, without copies. The other sizes are not touched, and the fabrics you excluded stay excluded. If the file has a name for the quilt, the quilt takes that name, and the confirm screen says so. A file without one keeps the name you have here. The app then reloads on that size. You can undo it by restoring that automatic version from Versions.',
+        'A full export is different. Import data replaces everything on the device you run it on. The quilts, versions and quilt names there are erased, and it cannot be undone. The app shows what the file holds and what will be erased before it does anything.',
         'For a full export, you can tap Export my data first on the confirm screen to keep what is on that device. It saves a file of the current data, and the confirm screen stays open.',
         'After a full import the app reloads and opens the size that was open when the file was exported.',
         'Files exported by older versions of the app keep working. A file from a newer version imports everything this version understands, and the confirm screen says how many quilts and versions it will skip.',
         'If a fabric in the file is not in this app, the confirm screen says so, and the spots that used it open with no fabric. You can paint them again. If a quilt\'s blocks no longer fit, they go back to their starting places, and the confirm screen says that too.',
         'Import refuses a file that is not a Vibe Quilting file, a file that cannot be read or is damaged, a file that is too large, a file that needs a newer version of the app than the one you have, a quilt file for a pattern or size this app does not have, and a quilt file with no quilt in it. Nothing changes when it refuses a file. If the file needs a newer version, update the app and try again.',
         'The file only works with this app. Other programs cannot open it, and it is not a picture. Please do not edit it by hand.',
-        'Clear all data erases every quilt and version for every size, the list of fabrics you excluded, and where you were in the guide. The app then opens as if for the first time. It asks first, and it cannot be undone. Undo will not bring the quilts back.',
+        'Clear all data erases every quilt, version and quilt name for every size, the list of fabrics you excluded, and where you were in the guide. The app then opens as if for the first time. It asks first, and it cannot be undone. Undo will not bring the quilts back.',
         'The Clear all data confirm screen also has Export my data first, to save a file before you erase.',
         'Export data is off while there is nothing saved, and Save quilt file is off while the quilt is empty and has no versions. Clear all data is off when there is nothing to erase.',
       ],
@@ -269,9 +291,9 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
       steps: [
         'Reset to shuffle, in the three dots menu, removes every fabric you placed by hand. It asks first, and it is off when no piece is placed by hand.',
         'Reset blocks puts every block back in its place and turn. The fat quarters and hand-placed fabrics stay.',
-        'Start fresh, at the top left of the quilt and in the three dots menu, empties the quilt for the size you have open, puts the blocks back, and starts the guide from the overview. It keeps that size\'s saved versions and brings back any fabrics you excluded. Resume the guide keeps the quilt instead.',
+        'Start fresh, at the top left of the quilt and in the three dots menu, empties the quilt for the size you have open, puts the blocks back, and starts the guide from the overview. It keeps that size\'s saved versions, brings back any fabrics you excluded, and clears the quilt\'s name. Resume the guide keeps the quilt instead.',
         'Reset to shuffle, Reset blocks and Start fresh each save an automatic version first, so you can restore the quilt from Versions even after a reload.',
-        'Undo brings back what those three changed.',
+        'Undo brings back what those three changed. It does not bring back a name that Start fresh cleared.',
         'To erase every size at once, use Clear all data in the three dots menu. It saves no version, and Undo cannot bring anything back.',
       ],
     },
@@ -281,10 +303,10 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
       steps: [
         'Tab moves between buttons and fabrics. Enter or Space picks the one in focus.',
         wide
-          ? 'Escape lets go of the fabric you are painting with, the piece you are looking at, and the block you picked up. It also closes an open sheet, the Save & export menu and the build sheet preview, cancels a drag, and ends the Exclude a fabric mode.'
-          : 'Escape lets go of the fabric you are painting with, the piece you are looking at, and the block you picked up. It also closes an open sheet and the build sheet preview, cancels a drag, and ends the Exclude a fabric mode.',
+          ? 'Escape lets go of the fabric you are painting with, the piece you are looking at, and the block you picked up. It also closes an open sheet, the Save & export menu and the build sheet preview, cancels a drag, and ends the Exclude a fabric mode. In the quilt name field it puts back the name the field had.'
+          : 'Escape lets go of the fabric you are painting with, the piece you are looking at, and the block you picked up. It also closes an open sheet and the build sheet preview, cancels a drag, and ends the Exclude a fabric mode. In the quilt name field it puts back the name the field had.',
         ...(wide ? ['In the Save & export menu, the up and down arrows, Home and End move between items.'] : []),
-        'Ctrl+Z or Cmd+Z undoes. Shift+Ctrl+Z, Shift+Cmd+Z, Ctrl+Y or Cmd+Y redoes. They do not work while you type a version name or while the build sheet preview is open.',
+        'Ctrl+Z or Cmd+Z undoes. Shift+Ctrl+Z, Shift+Cmd+Z, Ctrl+Y or Cmd+Y redoes. They do not work while you type a quilt name or a version name, or while the build sheet preview is open.',
       ],
     },
     {

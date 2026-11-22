@@ -26,6 +26,7 @@ import {
   readGuideFrom,
   readHintSeenFrom,
   readLastSizeFrom,
+  readQuiltNameFrom,
   readVersionsFrom,
 } from './storage';
 import { makeCollection } from './test-fixtures';
@@ -644,5 +645,95 @@ describe('retired guide steps', () => {
     const partial = { ...size, design: setLineupSlot(size.design!, 0, null), guide: { step: 'shuffle', block: 0 } };
     const r = ok(JSON.stringify({ ...q, projects: { p: { sizes: { throw: partial } } } }));
     expect(r.file.projects[0]?.sizes[0]?.guide).toEqual({ step: 'fabrics', block: 0 });
+  });
+});
+
+describe('quilt names', () => {
+  const named = () => {
+    const s = filled();
+    s.setItem('vq:v1:name:p:throw', "Ginger's Quilt");
+    return s;
+  };
+
+  it('round trips through a full export, and sizes without a name in the file end up unnamed', () => {
+    const b = buildBackup(named(), NOW, ctx);
+    expect(b.projects.p?.sizes.throw?.quiltName).toBe("Ginger's Quilt");
+    expect(b.projects.p?.sizes.crib && 'quiltName' in b.projects.p.sizes.crib).toBe(false);
+    const dest = new FakeStorage();
+    dest.setItem('vq:v1:name:p:crib', 'Old name');
+    expect(applyBackup(dest, ok(serializeBackup(b)).file)).toEqual({ ok: true });
+    expect(readQuiltNameFrom(dest, 'p', 'throw')).toBe("Ginger's Quilt");
+    expect(readQuiltNameFrom(dest, 'p', 'crib')).toBe('');
+  });
+
+  it('keeps a size that has only a name', () => {
+    const s = new FakeStorage();
+    s.setItem('vq:v1:name:p:queen', 'Just a name');
+    expect(buildBackup(s, NOW, ctx).projects.p?.sizes.queen).toMatchObject({ design: null, quiltName: 'Just a name' });
+  });
+
+  it('reads the name tolerantly', () => {
+    const b = buildBackup(filled(), NOW, ctx);
+    const withName = (quiltName: unknown) => {
+      const throwSize = { ...b.projects.p!.sizes.throw!, quiltName };
+      const file = { ...b, projects: { p: { ...b.projects.p!, sizes: { ...b.projects.p!.sizes, throw: throwSize } } } };
+      return ok(JSON.stringify(file)).file.projects[0]?.sizes.find((z) => z.sizeId === 'throw')?.quiltName;
+    };
+    expect(withName(42)).toBeUndefined();
+    expect(withName(['x'])).toBeUndefined();
+    expect(withName('   ')).toBeUndefined();
+    expect(withName('  Ginger\'s \n  Quilt  ')).toBe("Ginger's Quilt");
+    expect(withName('x'.repeat(80))).toBe('x'.repeat(60));
+  });
+
+  it('a quilt file carries the name and sets it when it opens', () => {
+    const q = buildQuiltBackup(named(), NOW, ctx, 'p', 'throw');
+    expect(q.projects.p?.sizes.throw?.quiltName).toBe("Ginger's Quilt");
+    const r = ok(serializeBackup(q));
+    expect(r.summary.quilt?.quiltName).toBe("Ginger's Quilt");
+    const dest = new FakeStorage();
+    dest.setItem('vq:v1:name:p:throw', 'Mine');
+    expect(applyQuiltBackup(dest, r.file, { now: 1, versionId: 'x' })).toEqual({ ok: true });
+    expect(readQuiltNameFrom(dest, 'p', 'throw')).toBe("Ginger's Quilt");
+  });
+
+  it('a quilt file without a name leaves the device name alone', () => {
+    const r = ok(serializeBackup(buildQuiltBackup(filled(), NOW, ctx, 'p', 'throw')));
+    expect(r.summary.quilt && 'quiltName' in r.summary.quilt).toBe(false);
+    const dest = new FakeStorage();
+    dest.setItem('vq:v1:name:p:throw', 'Mine');
+    expect(applyQuiltBackup(dest, r.file, { now: 1, versionId: 'x' })).toEqual({ ok: true });
+    expect(readQuiltNameFrom(dest, 'p', 'throw')).toBe('Mine');
+  });
+
+  it('rolls the name back when opening a quilt file fails', () => {
+    const r = ok(serializeBackup(buildQuiltBackup(named(), NOW, ctx, 'p', 'throw')));
+    const dest = new FakeStorage();
+    dest.setItem('vq:v1:name:p:throw', 'Mine');
+    // Design, versions, guide and name are written, then the last size write fails.
+    dest.failOnSet = 5;
+    expect(applyQuiltBackup(dest, r.file, { now: 1, versionId: 'x' })).toMatchObject({ ok: false });
+    expect(readQuiltNameFrom(dest, 'p', 'throw')).toBe('Mine');
+  });
+
+  it('names the quilt file after the quilt, or falls back', () => {
+    const day = new Date(2026, 10, 21, 9);
+    expect(quiltFileName('queen', day, 'Ginger\'s "Happy" Quilt / v2')).toBe("Ginger's Happy Quilt v2 2026-11-21.json");
+    expect(quiltFileName('queen', day, '')).toBe('vibe-quilting-queen-2026-11-21.json');
+    expect(quiltFileName('queen', day, '???')).toBe('vibe-quilting-queen-2026-11-21.json');
+  });
+
+  it('clearAllData removes names', () => {
+    const s = named();
+    clearAllData(s);
+    expect(s.getItem('vq:v1:name:p:throw')).toBeNull();
+  });
+
+  it('existing fixtures import with no names', () => {
+    for (const f of [v1, v2]) {
+      const r = ok(JSON.stringify(f));
+      expect(r.file.projects.flatMap((p) => p.sizes).some((z) => z.quiltName !== undefined)).toBe(false);
+    }
+    expect(ok(JSON.stringify(quiltV2)).summary.quilt?.quiltName).toBeUndefined();
   });
 });

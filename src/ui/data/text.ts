@@ -97,11 +97,24 @@ export function clearText(c: Pick<StorageCounts, 'quilts' | 'versions'>): string
     : `This erases ${holdsText(c)} on this device, for every size. It cannot be undone, and Undo will not bring them back.`;
 }
 
-/** What a quilt file holds, for the confirm sheet. */
-export function quiltHoldsText(sizeName: string, versions: number, exportedAt: string | null): string {
+/** What a quilt file holds, for the confirm sheet. Uses the quilt's name when the file has one. */
+export function quiltHoldsText(sizeName: string, versions: number, exportedAt: string | null, quiltName?: string): string {
   const when = exportedAt === null ? '' : `, exported on ${exportedOn(exportedAt)}`;
+  if (quiltName) {
+    const extra = versions > 0 ? `, and ${versionsText(versions)}` : '';
+    return `This file holds ${quiltName}, the ${sizeName} quilt${extra}${when}.`;
+  }
   const extra = versions > 0 ? ` and ${versionsText(versions)}` : '';
   return `This file holds the ${sizeName} quilt${extra}${when}.`;
+}
+
+/**
+ * What opening a quilt file does to the name. Null when nothing changes: the
+ * file has no name, which leaves the name here alone, or the names match.
+ */
+export function quiltNameChangeText(fileName: string | undefined, deviceName: string): string | null {
+  if (!fileName || fileName === deviceName) return null;
+  return deviceName ? `The name ${deviceName} changes to ${fileName}.` : `The quilt gets the name ${fileName}.`;
 }
 
 /** What opening a quilt file does. `deviceHasQuilt` says whether that size has a quilt here now. */
@@ -111,6 +124,7 @@ export function quiltOpensText(sizeName: string, deviceHasQuilt: boolean): strin
     : `The ${sizeName} size is empty on this device, so nothing is replaced. The file's versions are added to yours. Your other sizes are not touched.`;
 }
 
-export const QUILT_OPENED = (sizeName: string) => `Opened the ${sizeName} quilt.`;
+export const QUILT_OPENED = (sizeName: string, quiltName?: string) =>
+  quiltName ? `Opened ${quiltName}, the ${sizeName} quilt.` : `Opened the ${sizeName} quilt.`;
 export const QUILT_FAILED = 'Could not open the quilt. Your quilts are unchanged.';
 export const QUILT_FULL = 'Could not open the quilt. Storage on this device is full. Your quilts are unchanged.';

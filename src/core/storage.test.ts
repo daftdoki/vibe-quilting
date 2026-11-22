@@ -6,6 +6,8 @@ import {
   loadExcluded,
   loadGuide,
   loadLastSize,
+  loadQuiltName,
+  normalizeQuiltName,
   parseDataKey,
   parseGuideProgress,
   parseExcluded,
@@ -13,6 +15,8 @@ import {
   saveExcluded,
   saveGuide,
   saveLastSize,
+  saveQuiltName,
+  setWritesFrozen,
 } from './storage';
 import { makeCollection } from './test-fixtures';
 
@@ -163,5 +167,53 @@ describe('hidden fabrics', () => {
 
   it('parses the key', () => {
     expect(parseDataKey('vq:v1:excluded:p')).toEqual({ kind: 'excluded', projectId: 'p', sizeId: null });
+  });
+});
+
+describe('quilt names', () => {
+  function fullStub() {
+    const data = new Map<string, string>();
+    vi.stubGlobal('localStorage', {
+      getItem: (k: string) => data.get(k) ?? null,
+      setItem: (k: string, v: string) => void data.set(k, v),
+      removeItem: (k: string) => void data.delete(k),
+    });
+    return data;
+  }
+
+  it('normalizes: trims, collapses whitespace and caps at 60 characters', () => {
+    expect(normalizeQuiltName('  My \n  quilt  ')).toBe('My quilt');
+    expect(normalizeQuiltName('x'.repeat(70))).toBe('x'.repeat(60));
+    expect(normalizeQuiltName(`${'x'.repeat(59)} y`)).toBe('x'.repeat(59));
+    expect(normalizeQuiltName(7)).toBe('');
+    expect(normalizeQuiltName('   ')).toBe('');
+  });
+
+  it('stores one name per project and size, and an empty name removes the key', () => {
+    const data = fullStub();
+    expect(saveQuiltName('p', 'throw', '  Ginger\'s   Quilt ')).toBe("Ginger's Quilt");
+    expect(data.get('vq:v1:name:p:throw')).toBe("Ginger's Quilt");
+    expect(loadQuiltName('p', 'throw')).toBe("Ginger's Quilt");
+    expect(loadQuiltName('p', 'crib')).toBe('');
+    saveQuiltName('p', 'throw', '   ');
+    expect(data.has('vq:v1:name:p:throw')).toBe(false);
+    expect(loadQuiltName('p', 'throw')).toBe('');
+  });
+
+  it('skips saving while writes are frozen', () => {
+    const data = fullStub();
+    saveQuiltName('p', 'throw', 'Kept');
+    setWritesFrozen(true);
+    try {
+      saveQuiltName('p', 'throw', 'Changed');
+      saveQuiltName('p', 'throw', '');
+    } finally {
+      setWritesFrozen(false);
+    }
+    expect(data.get('vq:v1:name:p:throw')).toBe('Kept');
+  });
+
+  it('parseDataKey knows the name key', () => {
+    expect(parseDataKey('vq:v1:name:p:throw')).toEqual({ kind: 'name', projectId: 'p', sizeId: 'throw' });
   });
 });

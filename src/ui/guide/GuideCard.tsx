@@ -4,6 +4,7 @@
  */
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { Icon } from '../Icon';
+import { tapText } from '../pointerWords';
 import { repeatedFabricBlocks } from '../../core/design';
 import type { Design, FabricDef, PatternDef, ProjectDef, ResolvedPiece } from '../../core/types';
 import type { GuideStepId } from '../../core/storage';
@@ -257,14 +258,22 @@ export function GuideCard(props: Props) {
             and the app will not pick it.
           </p>
         )}
-        <p>{instruction(step, props)}</p>
+        {/* Why the step is worth doing, and what to aim for. */}
+        {step === 'blocks' && (
+          <p>
+            This is where you balance the quilt. Turning every other block, as the pattern suggests, stops the same
+            shapes lining up from block to block. Move a block when two alike fabrics sit side by side, or one area
+            looks too dark or too busy. Aim for the colours to look evenly spread.
+          </p>
+        )}
+        <p>{tapText(instruction(step, props))}</p>
       </div>
 
       {body}
 
       {tipText && (
         <p className="guide-tip">
-          <span className="guide-tip-label">Tip</span> {tipText}
+          <span className="guide-tip-label">Tip</span> {tapText(tipText)}
         </p>
       )}
 

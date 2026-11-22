@@ -3,6 +3,7 @@ import type { FabricDef, PatternDef } from '../core/types';
 import { repeatedFabricBlocks } from '../core/design';
 import { repeatNote } from './format';
 import { Icon } from './Icon';
+import { tapText } from './pointerWords';
 
 interface Props {
   pattern: PatternDef;
@@ -89,7 +90,7 @@ export function Lineup({
       {empty > 0 && (
         <div className="lineup-empty">
           <p>
-            {empty} {empty === 1 ? 'fat quarter is' : 'fat quarters are'} empty. Tap one to pick a fabric.
+            {empty} {empty === 1 ? 'fat quarter is' : 'fat quarters are'} empty. {tapText('Tap one to pick a fabric.')}
           </p>
           <button
             type="button"
@@ -141,8 +142,8 @@ export function Lineup({
         <div className="slot-picker" role="group" aria-label={`Fabric for fat quarter ${sel + 1}`}>
           <p>
             <strong>Fat quarter {sel + 1}</strong>
-            {selFabric ? ` is ${selFabric.name}.` : ' is empty.'} Pick a fabric, or tap another fat quarter to
-            swap the two.
+            {selFabric ? ` is ${selFabric.name}.` : ' is empty.'}{' '}
+            {tapText('Pick a fabric, or tap another fat quarter to swap the two.')}
           </p>
           <ul className="picker-grid">
             {fabrics.map((f) => (

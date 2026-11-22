@@ -1,6 +1,7 @@
 import type { PatternDef } from '../core/types';
 import { FatQuarterDiagram } from './FatQuarterDiagram';
 import { Icon, type IconName } from './Icon';
+import { tapText } from './pointerWords';
 import { TITLES } from './guide/titles';
 import { COUNTED_STEPS } from './guide/useGuide';
 
@@ -52,7 +53,8 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
         'Excluding a fabric takes it off the quilt you have open. The fat quarters that held it become empty, and pieces you placed by hand with it go back to the shuffle. Quilts in other sizes keep it, but the list applies to every size, so Pick at random and Fill the rest for me never choose it in any size. Undo brings the quilt back, but the fabric stays excluded. You cannot exclude the last fabric.',
         'In this step, yellow outlines on the quilt show every piece the current fat quarter fills, except pieces you placed by hand.',
         'If you tap Next while some fat quarters are still empty, the guide asks first. Fill the rest and go on fills them and moves on. Keep picking stays on the step.',
-        'Turn and move blocks: pick Turn every other block or All the same way up, then tap blocks to swap or turn them.',
+        'Turn and move blocks: this is where you balance the quilt, and the step says so at the top. Turning every other block stops the same shapes lining up from block to block. Move a block when two alike fabrics sit side by side, or one area looks too dark or too busy, until the colours look evenly spread.',
+        'In that step, pick Turn every other block or All the same way up, then tap blocks to swap or turn them.',
         'Touch-ups: the quilt zooms to one block at a time so you can paint pieces. Use Previous block and Next block, or Skip touch-ups. On the last block, Next block becomes Finish. These buttons are in one row under the step counter, with Back.',
         'Your quilt is ready: export a picture, save a quilt file, print a build sheet, or tap Keep editing to close the guide. A list shows where things are once the guide is closed.',
         'Back and Next are near the top of the guide card, under the step counter. Back is white with an arrow pointing left, and Next is yellow with an arrow pointing right. Back goes to the previous step and keeps your changes. On Quilt size, Back goes to the overview. The overview has no Back. Start and How to use sit there instead. Next is not shown on Touch-ups or on the last screen, which have their own buttons. Exit guide, at the top right of the card, closes it at any step and leaves the quilt as it is.',
@@ -60,8 +62,9 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
         'If any fat quarters are still empty after you leave the guide, a Finish setup button shows at the top left of the quilt. Tap it to go back to the Pick your fabrics step.',
         'To open the guide again on the quilt you have, open the three dots menu and tap Resume the guide. It keeps the quilt as it is and opens at Pick your fabrics if any fat quarters are empty, otherwise at Turn and move blocks. It is not in the menu while the guide is open.',
         'To set up a size again from scratch, tap Start fresh at the top left of the quilt. It is also in the three dots menu. It empties the quilt for the size you have open and starts the guide from the overview. Other sizes are not touched.',
-        'The Start fresh button on the quilt shows only while the quilt has a fabric on it. In the three dots menu, Start fresh also works on an empty quilt that has saved versions. It is off only when the quilt is empty and the size has no versions.',
-        'Start fresh asks first. If this size has saved versions, you can tick a box to delete them too. Undo brings back the quilt, but not deleted versions.',
+        'Start fresh is always there, on the quilt and in the three dots menu. On an empty quilt with no excluded fabrics it goes straight back to the overview without asking, which is the quick way to pick a different size.',
+        'When the quilt has fabric on it, or a fabric is excluded, Start fresh asks first. Saved versions for the size are kept, and the quilt you had is saved as an automatic version. Undo brings the quilt back too. To delete versions, use Delete in the Versions list.',
+        'If you excluded any fabrics, Start fresh brings them back, so every fabric can be picked again, and the confirm screen says so. The excluded list is one list for every size, so they come back in every size, and Undo does not exclude them again. To start over and keep a fabric out, exclude it again in Pick your fabrics.',
       ],
     },
     {
@@ -194,7 +197,6 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
         'Delete asks first. A deleted version cannot be brought back.',
         'Automatic versions have an Automatic tag and are named for the action, such as Before shuffle. The app saves one before Shuffle, Rearrange, Reset to shuffle in the three dots menu, Reset blocks, Turn every other block, All the same way up, Pick at random, Fill the rest for me, Fill the rest and go on, Clear picks, excluding a fabric the quilt uses, Start fresh, Start this size empty, restoring a version, and opening a quilt file.',
         'Reset to shuffle for a single piece, in the bar at the bottom of the quilt, does not save one. Undo brings that piece back.',
-        'Start fresh does not save an automatic version when you tick the box to delete this size\'s versions.',
         'It skips an automatic version when the action changes nothing, when the quilt is empty, when it matches the newest version, or when the newest version is an automatic one from the same action less than a minute ago. A run of shuffles keeps the layout from before the first one.',
         'Each size keeps up to 30 versions you saved and 8 automatic ones. When there are more, the oldest of that kind goes.',
         'Versions belong to one size and are stored on this device. Save quilt file takes this size\'s versions along, and Export data takes all of them. If storage is full, the app says so and the version is not saved.',
@@ -267,9 +269,9 @@ function topics(wide: boolean, pieceCount: number, letterRange: string): Topic[]
       steps: [
         'Reset to shuffle, in the three dots menu, removes every fabric you placed by hand. It asks first, and it is off when no piece is placed by hand.',
         'Reset blocks puts every block back in its place and turn. The fat quarters and hand-placed fabrics stay.',
-        'Start fresh, at the top left of the quilt and in the three dots menu, empties the quilt for the size you have open, puts the blocks back, and starts the guide from the overview. It can also delete that size\'s saved versions if you tick the box. Resume the guide keeps the quilt instead.',
-        'Reset to shuffle, Reset blocks and Start fresh each save an automatic version first, so you can restore the quilt from Versions even after a reload. Start fresh does not when you tick the box to delete versions.',
-        'Undo brings back what those three changed, but not deleted versions.',
+        'Start fresh, at the top left of the quilt and in the three dots menu, empties the quilt for the size you have open, puts the blocks back, and starts the guide from the overview. It keeps that size\'s saved versions and brings back any fabrics you excluded. Resume the guide keeps the quilt instead.',
+        'Reset to shuffle, Reset blocks and Start fresh each save an automatic version first, so you can restore the quilt from Versions even after a reload.',
+        'Undo brings back what those three changed.',
         'To erase every size at once, use Clear all data in the three dots menu. It saves no version, and Undo cannot bring anything back.',
       ],
     },
@@ -331,7 +333,7 @@ export function Help({
           )}
           <ul>
             {t.steps.map((s) => (
-              <li key={s}>{s}</li>
+              <li key={s}>{tapText(s)}</li>
             ))}
           </ul>
         </details>

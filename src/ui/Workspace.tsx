@@ -23,6 +23,7 @@ import { piecesForSlot, resolvePieces } from '../core/layout';
 import { loadHintSeen, saveHintSeen } from '../core/storage';
 import type { FabricDef, ProjectDef } from '../core/types';
 import { FabricTray } from './FabricTray';
+import { tapText } from './pointerWords';
 import { FatQuarterExplainer } from './FatQuarterDiagram';
 import { GuideCard } from './guide/GuideCard';
 import { TurnChoices } from './guide/steps';
@@ -290,12 +291,12 @@ export function Workspace({ project }: { project: ProjectDef }) {
     [trayRole, excludedIds, dragProps],
   );
 
-  const [freshDropsVersions, setFreshDropsVersions] = useState(false);
-  // Nothing to start over from when the quilt is empty and no version is saved.
-  const canStartFresh = !isEmptyDesign(design) || versions.list.length > 0;
+  // Start fresh is always on offer. It asks first only when there is something
+  // to lose: fabric on the quilt, or excluded fabrics that would come back.
+  const freshNeedsConfirm = !isEmptyDesign(design) || excludedIds.size > 0;
   const openStartFresh = () => {
-    setFreshDropsVersions(false);
-    setSheet('confirm-guide');
+    if (freshNeedsConfirm) setSheet('confirm-guide');
+    else startGuideOver();
   };
 
   const switchMode = (m: Mode) => {
@@ -304,16 +305,13 @@ export function Workspace({ project }: { project: ProjectDef }) {
     setSelectedCell(null);
   };
 
-  // Start fresh: empty this size and run the setup again. With `dropVersions`
-  // the size's saved versions go too, so no automatic version is kept either.
+  // Start fresh: empty this size and run the setup again. Saved versions are
+  // kept, and the quilt she had is saved as an automatic version first.
   const startGuideOver = () => {
-    if (freshDropsVersions && versions.list.length > 0) {
-      if (!versions.clearAll()) return;
-      update((d) => createEmptyDesign(pattern, d.sizeId));
-    } else {
-      checkpoint(REASONS.startOver, (d) => createEmptyDesign(pattern, d.sizeId));
-    }
-    setFreshDropsVersions(false);
+    checkpoint(REASONS.startOver, (d) => createEmptyDesign(pattern, d.sizeId));
+    // A fresh start brings excluded fabrics back. The excluded list is one list
+    // for every size, so they come back everywhere.
+    if (excludedIds.size > 0) excluded.set(new Set());
     guide.start();
     setActiveId(null);
     setInfoKey(null);
@@ -454,14 +452,14 @@ export function Workspace({ project }: { project: ProjectDef }) {
     status =
       selectedCell === null ? (
         <>
-          <span className="status-text">Tap a block to pick it up.</span>
+          <span className="status-text">{tapText('Tap a block to pick it up.')}</span>
           <button type="button" className="btn btn-small" onClick={() => checkpoint(REASONS.resetBlocks, (d) => resetBlocks(pattern, d))}>
             Reset blocks
           </button>
         </>
       ) : (
         <>
-          <span className="status-text">Tap another block to swap, or this one again to turn it.</span>
+          <span className="status-text">{tapText('Tap another block to swap, or this one again to turn it.')}</span>
           <button type="button" className="btn btn-small" onClick={() => setSelectedCell(null)}>
             Done
           </button>
@@ -473,7 +471,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
         <img className="status-thumb" src={activeFabric.thumb} alt="" draggable={false} />
         <span className="status-text">
           <strong>{activeFabric.name}</strong>
-          <span>Tap pieces to paint.</span>
+          <span>{tapText('Tap pieces to paint.')}</span>
         </span>
         <button type="button" className="btn btn-small" onClick={() => setActiveId(null)}>
           Done
@@ -515,7 +513,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
     status = (
       <>
         <span className="status-text">
-          Tap a fabric, then tap pieces to paint it. Or drag a fabric onto a piece.
+          {tapText('Tap a fabric, then tap pieces to paint it. Or drag a fabric onto a piece.')}
         </span>
         <button
           type="button"
@@ -761,18 +759,20 @@ export function Workspace({ project }: { project: ProjectDef }) {
                 Finish setup
               </button>
             )}
-            {!isEmptyDesign(design) && (
-              <button
-                type="button"
-                className="resume-btn fresh-btn"
-                onClick={openStartFresh}
-                aria-label={`Start fresh. Empty the ${size.name} quilt and set it up again.`}
-                title="Empty this quilt and set it up again"
-              >
-                <Icon name="reset" size={18} />
-                Start fresh
-              </button>
-            )}
+            <button
+              type="button"
+              className="resume-btn fresh-btn"
+              onClick={openStartFresh}
+              aria-label={
+                freshNeedsConfirm
+                  ? `Start fresh. Empty the ${size.name} quilt and set it up again.`
+                  : 'Start fresh. Go back to the start of the setup.'
+              }
+              title={freshNeedsConfirm ? 'Empty this quilt and set it up again' : 'Go back to the start of the setup'}
+            >
+              <Icon name="reset" size={18} />
+              Start fresh
+            </button>
           </div>
           <div className="status-slot" aria-live="polite">
             {status && <div className={`status status-${tapMode}`}>{status}</div>}
@@ -798,13 +798,13 @@ export function Workspace({ project }: { project: ProjectDef }) {
             {showTray && (
               <section className="panel-section">
                 <div className="panel-head">
-                  <h2>{hiding ? 'Tap to exclude or bring back' : 'Fabrics'}</h2>
+                  <h2>{hiding ? tapText('Tap to exclude or bring back') : 'Fabrics'}</h2>
                   <p>
                     {hiding
                       ? 'Fabrics with a slash are excluded.'
                       : trayRole === 'fill'
-                        ? 'Tap one to put it in the next fat quarter.'
-                        : 'Tap one to paint with it, or drag it onto a piece.'}
+                        ? tapText('Tap one to put it in the next fat quarter.')
+                        : tapText('Tap one to paint with it, or drag it onto a piece.')}
                   </p>
                 </div>
                 {tray}
@@ -927,14 +927,14 @@ export function Workspace({ project }: { project: ProjectDef }) {
             </li>
           )}
           <li>
-            <button type="button" className="action" onClick={openStartFresh} disabled={!canStartFresh}>
+            <button type="button" className="action" onClick={openStartFresh}>
               <Icon name="reset" />
               <span>
                 <strong>Start fresh</strong>
                 <span>
-                  {canStartFresh
+                  {freshNeedsConfirm
                     ? 'Empty this quilt and set it up again from the start.'
-                    : 'This quilt is already empty.'}
+                    : 'Go back to the start of the setup, to pick a size again.'}
                 </span>
               </span>
             </button>
@@ -1058,21 +1058,18 @@ export function Workspace({ project }: { project: ProjectDef }) {
 
       <Sheet open={sheet === 'confirm-guide'} title={`Start fresh with the ${size.name} quilt?`} onClose={() => setSheet(null)}>
         <p className="confirm-text">
-          This empties the {size.name} quilt and starts the setup again. Your other sizes are not touched. You can undo
-          it.
+          This empties the {size.name} quilt and starts the setup again. Quilts in your other sizes are not touched.
+          You can undo it.
         </p>
+        {excludedIds.size > 0 && (
+          <p className="confirm-text">
+            {excludedIds.size === 1
+              ? 'The 1 fabric you excluded comes back, so every fabric can be picked again.'
+              : `The ${excludedIds.size} fabrics you excluded come back, so every fabric can be picked again.`}
+          </p>
+        )}
         {versions.list.length > 0 && (
-          <label className="confirm-check">
-            <input
-              type="checkbox"
-              checked={freshDropsVersions}
-              onChange={(e) => setFreshDropsVersions(e.target.checked)}
-            />
-            <span>
-              Also delete the {versions.list.length} saved {versions.list.length === 1 ? 'version' : 'versions'} for
-              this size. Undo will not bring {versions.list.length === 1 ? 'it' : 'them'} back.
-            </span>
-          </label>
+          <p className="confirm-text">Your saved versions for this size are kept.</p>
         )}
         <div className="confirm-actions">
           <button type="button" className="btn btn-ghost" onClick={() => setSheet(null)}>

@@ -6,6 +6,7 @@ import type { GuideStepId } from '../../core/storage';
 import { inches, repeatNote } from '../format';
 import { quiltSizeInches } from '../../core/layout';
 import { Icon } from '../Icon';
+import { tapText } from '../pointerWords';
 import { REASONS, type CheckpointUpdate } from '../versions/useVersions';
 import { COUNTED_STEPS, type Guide } from './useGuide';
 import { TITLES } from './titles';
@@ -245,7 +246,7 @@ export function FabricsHow({
     <div className="guide-how" id={id}>
       <ul className="guide-how-list">
         {cutLine && <li>{cutLine}</li>}
-        <li>Pick at random chooses fabrics for you and replaces every pick. Tap it again for a different mix.</li>
+        <li>{tapText('Pick at random chooses fabrics for you and replaces every pick. Tap it again for a different mix.')}</li>
         <li>Rearrange keeps the fabrics you have and only changes where each one lands. Use it after picking by hand.</li>
         <li>Fill the rest for me keeps the fabrics you picked and fills only the empty fat quarters.</li>
         <li>Clear picks empties every fat quarter so you can pick again.</li>
@@ -446,7 +447,7 @@ export function IntroStep() {
       <div className="guide-intro-help">
         <h3>Where to get help</h3>
         <ul>
-          <li>Tap the ? button on the quilt at any time for the full How to use guide.</li>
+          <li>{tapText('Tap the ? button on the quilt at any time for the full How to use guide.')}</li>
           <li>In {TITLES.fabrics}, How it works explains that step.</li>
           <li>Exit guide closes the guide. Resume the guide, in the three dots menu, brings it back.</li>
         </ul>

@@ -4,6 +4,10 @@ Mock up a quilt on your phone. A guided setup picks a size and fills a stack of 
 
 The first project is the Stacks pattern with the Happy Place fat quarter bundle.
 
+## Try it
+
+The app is live at https://daftdoki.github.io/vibe-quilting/. It runs in the browser and keeps your quilts on your own device.
+
 ## Run it
 
 ```bash
@@ -108,6 +112,19 @@ What this means in practice:
 2. Use finished sizes, which are the cut sizes minus seam allowances.
 3. Add a project in `src/projects/` that pairs the pattern with a collection, and register it in `src/projects/index.ts`.
 
-## Copyright
+## Publishing
 
-Quilt patterns and fabric prints belong to their designers. This repo holds block measurements and swatch images for personal mockups. Keep it private, and do not add pattern PDFs.
+Every push to `main` builds the app and publishes it to GitHub Pages through `.github/workflows/pages.yml`. Pages serves the site from `/vibe-quilting/`, so the workflow builds with `VITE_BASE=/vibe-quilting/`. Files in `public/` are addressed through `asset()` in `src/core/asset.ts`, which adds that prefix. Do not write a public file's path with a leading slash.
+
+The workflow's actions are pinned to commits and follow the dependency age rule above.
+
+## Credits and copyright
+
+Quilt patterns and fabric prints belong to their designers. This project is not affiliated with or endorsed by any of them.
+
+- The Stacks quilt pattern is by Connie Kresin Campbell. The app holds only the finished sizes of the block's pieces. It does not include the pattern, its cutting sizes or its instructions. To make the quilt, buy the pattern from the designer.
+- The Happy Place fabric collection is by Annabel Wrigley for Windham Fabrics. The swatch images are the designer's product images, used here so a quilter can see how the fabrics will look together.
+
+If you hold rights to any of this material and want it removed, open an issue on the repository.
+
+Do not add pattern PDFs to this repo.

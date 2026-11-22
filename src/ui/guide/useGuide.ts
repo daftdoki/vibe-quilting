@@ -130,15 +130,19 @@ export function useGuide(
     [project.id, wasCreated],
   );
 
-  const [state, setState] = useState<State>(() => ({
-    sizeId: ds.sizeId,
-    progress: progressFor(ds.sizeId),
-    carryTo: null,
-    conflictSize: null,
-    pickedSlot: null,
-    offerFill: false,
-    hiding: false,
-  }));
+  const [state, setState] = useState<State>(() => {
+    const progress = progressFor(ds.sizeId);
+    return {
+      sizeId: ds.sizeId,
+      progress,
+      carryTo: null,
+      // Switching fabric set can open the size step on a size that already has a design.
+      conflictSize: progress?.step === 'size' && !isEmptyDesign(ds.design) ? ds.sizeId : null,
+      pickedSlot: null,
+      offerFill: false,
+      hiding: false,
+    };
+  });
 
   // A size switch replaces the state during render, so no frame shows the old size's step.
   let current = state;

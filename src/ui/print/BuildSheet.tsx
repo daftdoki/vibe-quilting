@@ -207,8 +207,64 @@ export function sheetContent({
         { key: 'have', label: 'Have it', mm: 22 },
       ];
 
+  // A big set (Ruby Star has 111 fabrics) can put 30 or more different fabrics in one quilt.
+  // One fabric per row would spill onto a second page, so above 20 the table runs in two
+  // halves side by side: rows 1 to n on the left, the rest on the right. The SKU moves under
+  // the name to make room.
+  const split = sheet.fabrics.length > 20;
+  const half = Math.ceil(sheet.fabrics.length / 2);
+  const halfCols = (side: string): TableDef['cols'] =>
+    (pictures ? [{ key: `pic${side}`, label: '', mm: 10, ariaLabel: 'Fabric picture' }] : ([] as TableDef['cols'])).concat([
+      { key: `no${side}`, label: 'No.', mm: 9 },
+      { key: `name${side}`, label: 'Fabric and SKU', mm: pictures ? 46 : 56 },
+      { key: `buy${side}`, label: 'Buy', mm: 12 },
+      { key: `have${side}`, label: 'Have', mm: 14 },
+    ]);
+  const halfCells = (f: SheetFabric | undefined) => {
+    if (!f) return <td className="bs-split-empty" colSpan={pictures ? 5 : 4} />;
+    const buy = sheet.buy[f.number - 1];
+    return (
+      <>
+        {pictures && (
+          <td className="bs-swatch-cell">
+            <Swatch src={thumbs.get(f.id)} />
+          </td>
+        )}
+        <td className="bs-no">{f.number}</td>
+        <td>
+          {f.name}
+          <span className="bs-split-sku">{f.sku}</span>
+        </td>
+        <td>
+          <strong>{buy?.total ?? 0}</strong>
+          {buy && buy.extra > 0 && <span className="bs-cell-note">+{buy.extra} extra</span>}
+        </td>
+        <td className="bs-have">
+          <TickBox />
+        </td>
+      </>
+    );
+  };
+
   const tables: Record<TableKey, TableDef> = {
-    fabrics: {
+    fabrics: split
+      ? {
+          className: 'bs-fabrics bs-fabrics-split',
+          cols: [...halfCols('L'), { key: 'gap', label: '', mm: 4 }, ...halfCols('R')],
+          count: half,
+          row(i, measureId) {
+            const left = sheet.fabrics[i];
+            if (!left) return null;
+            return (
+              <tr key={left.id} data-m={measureId}>
+                {halfCells(left)}
+                <td className="bs-split-gap" />
+                {halfCells(sheet.fabrics[i + half])}
+              </tr>
+            );
+          },
+        }
+      : {
       className: 'bs-fabrics',
       cols: fabricCols,
       count: sheet.fabrics.length,
@@ -356,7 +412,7 @@ export function sheetContent({
     },
     { kind: 'node', id: 'fabrics-h', gap: 5, keep: true, node: <h2>Fabrics</h2> },
     { kind: 'head', id: 'fabrics:head', table: 'fabrics', gap: 0 },
-    ...sheet.fabrics.map((_, i): Blk => ({ kind: 'row', id: `fabrics:${i}`, table: 'fabrics', row: i })),
+    ...Array.from({ length: tables.fabrics.count }, (_, i): Blk => ({ kind: 'row', id: `fabrics:${i}`, table: 'fabrics', row: i })),
   ];
   if (lines.length > 0) {
     first.push({

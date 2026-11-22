@@ -48,7 +48,15 @@ const NO_DATA: StorageCounts = { quilts: 0, versions: 0, sizeIds: [], entries: 0
 export type DataSheet =
   | { kind: 'notice'; title: string; text: string }
   | { kind: 'import'; file: ImportData; summary: BackupSummary }
-  | { kind: 'quilt'; file: ImportData; summary: BackupSummary; deviceHasQuilt: boolean; deviceName: string }
+  | {
+      kind: 'quilt';
+      file: ImportData;
+      summary: BackupSummary;
+      deviceHasQuilt: boolean;
+      deviceName: string;
+      /** Name of the fabric set the quilt belongs to, when it is not the open one. */
+      otherSet: string | null;
+    }
   | { kind: 'clear' };
 
 export interface DataTransfer {
@@ -98,7 +106,13 @@ function reloadWith(message: string): void {
   location.reload();
 }
 
-export function useDataTransfer(notify: (message: string) => void): DataTransfer {
+/** The name of a project's fabric set, or null when it is the open one or the app has one set. */
+function otherSetName(projectId: string, openId: string): string | null {
+  if (projectId === openId || BACKUP_CONTEXT.projects.length < 2) return null;
+  return BACKUP_CONTEXT.projects.find((p) => p.id === projectId)?.collection.name ?? null;
+}
+
+export function useDataTransfer(notify: (message: string) => void, openProjectId: string): DataTransfer {
   const [device, setDevice] = useState<StorageCounts>(readDevice);
   const [sheet, setSheet] = useState<DataSheet | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -188,13 +202,14 @@ export function useDataTransfer(notify: (message: string) => void): DataTransfer
             summary: parsed.summary,
             deviceHasQuilt: current !== null && !isEmptyDesign(current),
             deviceName: readQuiltNameFrom(s, quilt.projectId, quilt.sizeId),
+            otherSet: otherSetName(quilt.projectId, openProjectId),
           });
           return;
         }
         setSheet({ kind: 'import', file: parsed.file, summary: parsed.summary });
       })
       .catch(() => fail('not-json'));
-  }, []);
+  }, [openProjectId]);
 
   const askClear = useCallback(() => {
     setDevice(readDevice());
@@ -242,7 +257,7 @@ export function useDataTransfer(notify: (message: string) => void): DataTransfer
       });
       return;
     }
-    reloadWith(QUILT_OPENED(sizeName, quiltName));
+    reloadWith(QUILT_OPENED(sizeName, quiltName, sheet.otherSet ?? undefined));
   }, [sheet]);
 
   const confirmClear = useCallback(() => {

@@ -2,7 +2,7 @@
 
 Mock up a quilt on your phone. A guided setup picks a size and fills a stack of fat quarters, and you can tap or drag fabrics onto single pieces after that. Prints draw at their real size, so the mockup shows how the sewn quilt will look. The app saves versions, exports a picture, saves and opens quilt files, and prints a build sheet to cut and sew from, with fabric pictures and a colour picture of the quilt that can be turned off.
 
-The first project is the Stacks pattern with the Happy Place fat quarter bundle.
+The first project is the Stacks pattern with the Happy Place fat quarter bundle. A second project pairs Stacks with the Ruby Star collection.
 
 ## Try it
 
@@ -103,8 +103,8 @@ What this means in practice:
 ## Adding a fabric collection
 
 1. Put the swatch images in `assets-src/fabrics/<id>/`.
-2. Add an entry for the collection to the config at the top of `scripts/prep-fabrics.mjs`. It needs the pixels per inch of the swatch images, which you measure from a ruler in the photo or work out from a known repeat size.
-3. Run `npm run prep:fabrics`.
+2. Add an entry for the collection to the config at the top of `scripts/prep-fabrics.mjs`. It needs the pixels per inch of the swatch images, which you measure from a ruler in the photo or work out from a known repeat size. It also needs a crop rectangle that leaves out rulers and rounded corners, a `namePattern` for the file names, and a design name for each SKU code.
+3. Run `node scripts/prep-fabrics.mjs <id>` for the new collection. Fabric ids come from the file names and are permanent, so name the files carefully.
 
 ## Adding a pattern
 
@@ -124,6 +124,7 @@ Quilt patterns and fabric prints belong to their designers. This project is not 
 
 - The Stacks quilt pattern is by Connie Kresin Campbell. The app holds only the finished sizes of the block's pieces. It does not include the pattern, its cutting sizes or its instructions. To make the quilt, buy the pattern from the designer.
 - The Happy Place fabric collection is by Annabel Wrigley for Windham Fabrics. The swatch images are the designer's product images, used here so a quilter can see how the fabrics will look together.
+- The Ruby Star fabrics are Speckled by Rashida Coleman-Hale and Starry by Alexia Abegg, for Ruby Star Society for Moda. The swatch images are Moda product scans as shown by Fat Quarter Shop, used here so a quilter can see how the fabrics will look together. This project is not affiliated with Fat Quarter Shop.
 
 If you hold rights to any of this material and want it removed, open an issue on the repository.
 

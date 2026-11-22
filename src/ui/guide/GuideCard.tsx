@@ -10,12 +10,16 @@ import type { Design, FabricDef, PatternDef, ProjectDef, ResolvedPiece } from '.
 import type { GuideStepId } from '../../core/storage';
 import type { CheckpointUpdate } from '../versions/useVersions';
 import { BlocksStep, DoneStep, FabricsHow, FabricsStep, IntroStep, SizeStep, TouchupsStep } from './steps';
-import { TITLES } from './titles';
+import { stepTitles } from './titles';
 import { COUNTED_STEPS, type Guide } from './useGuide';
 
 interface Props {
   guide: Guide;
   project: ProjectDef;
+  /** Every fabric set. With more than one, the first step also picks the set. */
+  projects: readonly ProjectDef[];
+  /** Switch to another fabric set from the first step. */
+  onPickProject(project: ProjectDef): void;
   design: Design;
   /** Applies a change after saving an automatic version. */
   checkpointUpdate: CheckpointUpdate;
@@ -50,7 +54,7 @@ function instruction(step: GuideStepId, p: Props): string {
     case 'intro':
       return 'The guide walks you through it. Nothing is final, and you can change everything later.';
     case 'size':
-      return 'Pick a quilt size.';
+      return p.projects.length > 1 ? 'Pick a fabric set, then a quilt size.' : 'Pick a quilt size.';
     case 'fabrics': {
       if (guide.hiding) {
         return wide
@@ -76,12 +80,18 @@ function instruction(step: GuideStepId, p: Props): string {
   }
 }
 
-function tip(step: GuideStepId, wide: boolean): string | null {
+function tip(step: GuideStepId, wide: boolean, multiSets: boolean): string | null {
   switch (step) {
     case 'intro':
       return null;
-    case 'size':
-      return 'Each size keeps its own design, and you can change size later by tapping the size at the top of the screen.';
+    case 'size': {
+      const size = 'Each size keeps its own design, and you can change size later by tapping the size at the top of the screen.';
+      if (!multiSets) return size;
+      const sets = wide
+        ? 'Each fabric set keeps its own quilts, and a quilt uses one set. Change the set later with the set name at the top left, beside the size.'
+        : 'Each fabric set keeps its own quilts, and a quilt uses one set. To change the set later, open the three dots menu and tap Fabric set.';
+      return `${size} ${sets}`;
+    }
     case 'fabrics':
       // This step is the fullest on a phone, so its zoom tip lives in the blocks step.
       return null;
@@ -128,15 +138,26 @@ export function GuideCard(props: Props) {
   const index = COUNTED_STEPS.indexOf(step);
   const counter =
     index >= 0 ? `Step ${index + 1} of ${COUNTED_STEPS.length}` : step === 'intro' ? 'Before you start' : 'All set';
-  const tipText = tip(step, wide);
+  const multiSets = props.projects.length > 1;
+  const titles = stepTitles(multiSets);
+  const tipText = tip(step, wide, multiSets);
 
   let body: ReactNode = null;
   switch (step) {
     case 'intro':
-      body = <IntroStep onSkip={guide.exit} />;
+      body = <IntroStep onSkip={guide.exit} multi={multiSets} />;
       break;
     case 'size':
-      body = <SizeStep guide={guide} pattern={project.pattern} design={design} />;
+      body = (
+        <SizeStep
+          guide={guide}
+          pattern={project.pattern}
+          design={design}
+          projects={props.projects}
+          currentId={project.id}
+          onPickProject={props.onPickProject}
+        />
+      );
       break;
     case 'fabrics':
       body = (
@@ -162,6 +183,7 @@ export function GuideCard(props: Props) {
       body = (
         <DoneStep
           wide={wide}
+          multi={multiSets}
           exporting={exporting}
           onExport={onExport}
           onSaveQuilt={props.onSaveQuilt}
@@ -227,7 +249,7 @@ export function GuideCard(props: Props) {
 
       <div className="guide-title-row">
         <h2 id={titleId} className="guide-title">
-          {step === 'fabrics' && guide.hiding ? 'Exclude fabrics' : TITLES[step]}
+          {step === 'fabrics' && guide.hiding ? 'Exclude fabrics' : titles[step]}
         </h2>
         {step === 'fabrics' && !guide.hiding && (
           <button

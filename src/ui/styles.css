@@ -2726,3 +2726,151 @@ html.is-dragging * {
 .is-wide .guide-intro-after h3 {
   font-size: 17px;
 }
+
+/*
+ * Fabric sets. One large card per set, in the guide's first step and in the
+ * Fabric set sheet. Text follows the size floors above: 15px and up on a
+ * phone, 16px and up on wide screens.
+ */
+.guide-subhead {
+  margin: 4px 0 -2px;
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.is-wide .guide-subhead {
+  font-size: 17px;
+}
+
+.fabric-sets {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.fabric-sets > li {
+  min-width: 0;
+}
+
+/* minmax(0, 1fr) stops the strip of swatches from widening the card past the sheet. */
+.fabric-set {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.22);
+  box-shadow: inset 0 0 0 1.5px var(--line);
+  color: var(--ink);
+  text-align: left;
+  line-height: 1.25;
+}
+
+.fabric-set:hover {
+  background: rgba(255, 244, 251, 0.06);
+}
+
+.fabric-set.is-on {
+  background: rgba(45, 226, 230, 0.14);
+  box-shadow: inset 0 0 0 2px var(--cyan);
+}
+
+.fabric-set-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fabric-set-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 17px;
+  font-weight: 750;
+}
+
+.fabric-set.is-on svg {
+  flex: none;
+  color: var(--cyan);
+}
+
+.fabric-set-meta {
+  font-size: 15px;
+  color: var(--ink-dim);
+}
+
+.fabric-set-thumbs {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.fabric-set-thumbs img {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 56px;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.is-wide .fabric-set-name {
+  font-size: 18px;
+}
+
+.is-wide .fabric-set-meta {
+  font-size: 16px;
+}
+
+.sheet-sets .fabric-set-thumbs img {
+  max-width: 64px;
+}
+
+/*
+ * Top bar: the set name as a button, where the plain label was. It shrinks
+ * before the size does and never pushes Undo or the three dots off the bar.
+ * When a narrow screen squeezes it out, Fabric set in the three dots menu
+ * does the same.
+ */
+.project-btn {
+  display: inline-flex;
+  flex: 0 100 auto;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 8px 0 10px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--ink-dim);
+  font-size: 15px;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.project-btn:hover {
+  background: rgba(255, 244, 251, 0.06);
+}
+
+.project-btn svg {
+  flex: none;
+}
+
+.project-btn-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-wide .project-btn {
+  font-size: 16px;
+}

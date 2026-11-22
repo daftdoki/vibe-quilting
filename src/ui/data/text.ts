@@ -91,10 +91,10 @@ export function importErasesText(c: Pick<StorageCounts, 'quilts' | 'versions'>):
     : `This erases the ${holdsText(c)} on this device. It cannot be undone.`;
 }
 
-export function clearText(c: Pick<StorageCounts, 'quilts' | 'versions'>): string {
+export function clearText(c: Pick<StorageCounts, 'quilts' | 'versions'>, multipleSets = false): string {
   return c.quilts === 0 && c.versions === 0
     ? 'This erases your saved settings on this device. It cannot be undone.'
-    : `This erases ${holdsText(c)} on this device, for every size. It cannot be undone, and Undo will not bring them back.`;
+    : `This erases ${holdsText(c)} on this device, for every size${multipleSets ? ' and fabric set' : ''}. It cannot be undone, and Undo will not bring them back.`;
 }
 
 /** What a quilt file holds, for the confirm sheet. Uses the quilt's name when the file has one. */
@@ -118,13 +118,17 @@ export function quiltNameChangeText(fileName: string | undefined, deviceName: st
 }
 
 /** What opening a quilt file does. `deviceHasQuilt` says whether that size has a quilt here now. */
-export function quiltOpensText(sizeName: string, deviceHasQuilt: boolean): string {
-  return deviceHasQuilt
+export function quiltOpensText(sizeName: string, deviceHasQuilt: boolean, otherSet?: string): string {
+  const base = deviceHasQuilt
     ? `It replaces the ${sizeName} quilt on this device. If the quilt you have there now is different, it is kept as an automatic version. The file's versions are added to yours. Your other sizes are not touched.`
     : `The ${sizeName} size is empty on this device, so nothing is replaced. The file's versions are added to yours. Your other sizes are not touched.`;
+  // A quilt belongs to one fabric set. The app shows that set after the file opens.
+  return otherSet ? `${base} This quilt uses the ${otherSet} fabric set, so the app switches to that set to show it.` : base;
 }
 
-export const QUILT_OPENED = (sizeName: string, quiltName?: string) =>
-  quiltName ? `Opened ${quiltName}, the ${sizeName} quilt.` : `Opened the ${sizeName} quilt.`;
+export const QUILT_OPENED = (sizeName: string, quiltName?: string, otherSet?: string) => {
+  const opened = quiltName ? `Opened ${quiltName}, the ${sizeName} quilt` : `Opened the ${sizeName} quilt`;
+  return otherSet ? `${opened}, in the ${otherSet} fabric set.` : `${opened}.`;
+};
 export const QUILT_FAILED = 'Could not open the quilt. Your quilts are unchanged.';
 export const QUILT_FULL = 'Could not open the quilt. Storage on this device is full. Your quilts are unchanged.';

@@ -5,6 +5,12 @@
 // For each source JPEG in assets-src/fabrics/<collection-id>/, this writes a
 // cropped swatch and a square thumbnail to public/fabrics/<collection-id>/,
 // then generates src/fabrics/<collection-id>/index.ts.
+//
+// Fabric ids are permanent. Saved quilts and data files store them, so an id
+// is the lowercase file stem (for example "rs5027-50m-bright-blue") and must
+// never change. Do not rename a source file or change a namePattern in a way
+// that changes an existing id. If an id must change, add the old id to the
+// collection's `aliases` instead.
 
 import { mkdir, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -19,7 +25,10 @@ const COLLECTIONS = {
     // Ruler measurement: image pixels per inch of real fabric.
     pxPerInch: 71.4,
     // The fabric is the top rows of each image. The ruler strip sits below.
-    cropHeightPx: 770,
+    // No width means the full image width.
+    crop: { height: 770 },
+    // File name: <code>-<number><suffix>-<Colorway-With-Dashes>.jpg
+    namePattern: /^(?<code>\d{5}D)-(?<number>\d+)(?<suffix>)-(?<colorway>.+)\.jpg$/i,
     designs: {
       '55372D': 'Log Cabin',
       '55373D': 'Passage',
@@ -28,6 +37,25 @@ const COLLECTIONS = {
       '55376D': 'Window',
       '55377D': 'Tower',
       '55378D': 'Freewheel',
+    },
+  },
+  'ruby-star': {
+    name: 'Ruby Star',
+    designer: 'Rashida Coleman-Hale and Alexia Abegg',
+    manufacturer: 'Ruby Star Society for Moda',
+    // Ruler measurement: inch ticks 81.9 px apart in the 900 px scans.
+    pxPerInch: 81.9,
+    // The scans are 900 x 900. The fabric ends at y = 854 and the ruler band
+    // starts at y = 855. Both top corners are white rounded corners that reach
+    // 32 px in from each edge. The crop starts at y = 32 and stops at y = 849,
+    // so it holds no corner and no ruler. It is 870 wide, which also trims the
+    // right edge.
+    crop: { left: 0, top: 32, width: 870, height: 818 },
+    // File name: <code>-<number><letters>-<Colorway-With-Dashes>.jpg
+    namePattern: /^(?<code>RS\d{4})-(?<number>\d+)(?<suffix>[A-Z]*)-(?<colorway>.+)\.jpg$/i,
+    designs: {
+      RS5027: 'Speckled',
+      RS4109: 'Starry',
     },
   },
 };
@@ -47,9 +75,6 @@ const srcDir = path.join(root, 'assets-src', 'fabrics', collectionId);
 const outDir = path.join(root, 'public', 'fabrics', collectionId);
 const tsDir = path.join(root, 'src', 'fabrics', collectionId);
 
-// <designCode>-<number>-<Colorway-With-Dashes>.jpg
-const NAME_PATTERN = /^(\d{5}D)-(\d+)-(.+)\.jpg$/i;
-
 function toHex([r, g, b]) {
   return (
     '#' +
@@ -64,12 +89,13 @@ function tsString(value) {
 }
 
 async function prepare(file) {
-  const match = NAME_PATTERN.exec(file);
+  const match = config.namePattern.exec(file);
   if (!match) {
-    throw new Error(`File name does not match <designCode>-<number>-<Colorway>.jpg: ${file}`);
+    throw new Error(`File name does not match the pattern for ${collectionId}: ${file}`);
   }
-  const [, designCode, number, colorwayDashed] = match;
-  const design = config.designs[designCode.toUpperCase()];
+  const { code, number, suffix, colorway: colorwayDashed } = match.groups;
+  const designCode = code.toUpperCase();
+  const design = config.designs[designCode];
   if (!design) {
     throw new Error(`No design name for code ${designCode} in ${file}`);
   }
@@ -80,13 +106,17 @@ async function prepare(file) {
   if (width === undefined || height === undefined) {
     throw new Error(`Could not read dimensions of ${file}`);
   }
-  if (config.cropHeightPx > height) {
-    throw new Error(`cropHeightPx ${config.cropHeightPx} exceeds image height ${height} in ${file}`);
+  const left = config.crop.left ?? 0;
+  const top = config.crop.top ?? 0;
+  const cropWidth = config.crop.width ?? width - left;
+  const cropHeight = config.crop.height;
+  if (left + cropWidth > width || top + cropHeight > height) {
+    throw new Error(`Crop ${cropWidth}x${cropHeight} at ${left},${top} does not fit image ${width}x${height} in ${file}`);
   }
 
-  // The fabric: top strip of the image, without the ruler.
+  // The fabric: the crop rectangle, without the ruler or the rounded corner.
   const fabric = await sharp(input)
-    .extract({ left: 0, top: 0, width, height: config.cropHeightPx })
+    .extract({ left, top, width: cropWidth, height: cropHeight })
     .toBuffer();
 
   await sharp(fabric)
@@ -94,11 +124,11 @@ async function prepare(file) {
     .toFile(path.join(outDir, `${id}.jpg`));
 
   // Thumbnail: the largest centered square of the fabric, scaled down.
-  const side = Math.min(width, config.cropHeightPx);
+  const side = Math.min(cropWidth, cropHeight);
   await sharp(fabric)
     .extract({
-      left: Math.floor((width - side) / 2),
-      top: Math.floor((config.cropHeightPx - side) / 2),
+      left: Math.floor((cropWidth - side) / 2),
+      top: Math.floor((cropHeight - side) / 2),
       width: side,
       height: side,
     })
@@ -111,13 +141,14 @@ async function prepare(file) {
 
   return {
     id,
-    designCode: designCode.toUpperCase(),
+    designCode,
     number: Number(number),
+    suffix: suffix.toUpperCase(),
     design,
     colorway: colorwayDashed.replace(/-/g, ' '),
-    sku: `${designCode.toUpperCase()}-${number}`,
-    width,
-    height: config.cropHeightPx,
+    sku: `${designCode}-${number}${suffix.toUpperCase()}`,
+    width: cropWidth,
+    height: cropHeight,
     color,
   };
 }
@@ -175,10 +206,11 @@ for (const file of files) {
   console.log(`${result.id}  ${result.color}  ${result.sku}`);
 }
 
-// Sort by design code, then by the number in the file name (numeric).
+// Sort by design code, then by the number in the SKU (numeric), then by its letters.
 results.sort((a, b) => {
   if (a.designCode !== b.designCode) return a.designCode < b.designCode ? -1 : 1;
-  return a.number - b.number;
+  if (a.number !== b.number) return a.number - b.number;
+  return a.suffix < b.suffix ? -1 : a.suffix > b.suffix ? 1 : 0;
 });
 
 const indexPath = path.join(tsDir, 'index.ts');

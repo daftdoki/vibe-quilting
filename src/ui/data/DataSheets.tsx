@@ -11,6 +11,7 @@ import {
   quiltNameChangeText,
   quiltOpensText,
 } from './text';
+import { BACKUP_CONTEXT } from './context';
 
 /**
  * The safe button gets focus. The attribute covers a sheet that is still
@@ -85,7 +86,7 @@ export function DataSheets({ data }: { data: DataTransfer }) {
         <p className="confirm-text">
           {quiltHoldsText(sizeName, sheet.summary.versions, sheet.summary.exportedAt, quiltName)}
         </p>
-        <p className="confirm-text">{quiltOpensText(sizeName, sheet.deviceHasQuilt)}</p>
+        <p className="confirm-text">{quiltOpensText(sizeName, sheet.deviceHasQuilt, sheet.otherSet ?? undefined)}</p>
         {nameChange && <p className="confirm-text">{nameChange}</p>}
         {importNotesText(sheet.summary.notes).map((t) => (
           <p key={t} className="confirm-text">
@@ -106,7 +107,7 @@ export function DataSheets({ data }: { data: DataTransfer }) {
     title = 'Erase everything?';
     body = (
       <>
-        <p className="confirm-text">{clearText(device)}</p>
+        <p className="confirm-text">{clearText(device, BACKUP_CONTEXT.projects.length > 1)}</p>
         <div className="confirm-actions confirm-actions-wrap">
           {exportFirst}
           <button ref={focusFirst} type="button" className="btn btn-ghost" onClick={closeSheet}>

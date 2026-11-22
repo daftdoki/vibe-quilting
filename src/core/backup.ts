@@ -39,14 +39,17 @@ import {
   readDesignFrom,
   readExcludedFrom,
   readGuideFrom,
+  readCurrentProjectFrom,
   readHintSeenFrom,
   readLastSizeFrom,
   readQuiltNameFrom,
   readVersionsFrom,
+  CURRENT_PROJECT_KEY,
   STORAGE_PREFIX,
   writeDesignTo,
   writeExcludedTo,
   writeGuideTo,
+  writeCurrentProjectTo,
   writeHintSeenTo,
   writeLastSizeTo,
   writeQuiltNameTo,
@@ -90,7 +93,8 @@ export interface BackupFile {
   appVersion?: string;
   projects: Record<string, BackupProject>;
   /** Not written in a quilt file. */
-  settings?: { hintSeen?: boolean };
+  /** `currentProject` is the id of the open fabric set. Added without a format change. */
+  settings?: { hintSeen?: boolean; currentProject?: string };
 }
 
 export interface BackupProject {
@@ -125,6 +129,8 @@ export interface ImportData {
   scope: 'all' | 'quilt';
   projects: ImportProject[];
   hintSeen: boolean;
+  /** The open fabric set, when the file names one this app has. Only for scope "all". */
+  currentProjectId?: string;
 }
 
 export interface ImportProject {
@@ -244,7 +250,10 @@ function collect(storage: KeyValueStorage): { projects: Record<string, BackupPro
     if (hasExcluded) project.excludedFabrics = excluded;
     projects[projectId] = project;
   }
-  return { projects, settings: readHintSeenFrom(storage) ? { hintSeen: true } : {} };
+  const settings: NonNullable<BackupFile['settings']> = readHintSeenFrom(storage) ? { hintSeen: true } : {};
+  const current = readCurrentProjectFrom(storage);
+  if (current !== null) settings.currentProject = current;
+  return { projects, settings };
 }
 
 function usedFabricIds(size: BackupSize): string[] {
@@ -289,6 +298,12 @@ function header(now: Date, ctx: BackupContext): Pick<BackupFile, 'app' | 'format
 export function buildBackup(storage: KeyValueStorage, now: Date, ctx: BackupContext): BackupFile {
   const { projects, settings } = collect(storage);
   describe(projects, ctx);
+  // A set this app does not know would only be ignored on import.
+  if (settings?.currentProject !== undefined) {
+    const id = resolveAlias(ctx.projectAliases, settings.currentProject);
+    if (ctx.projects.some((p) => p.id === id)) settings.currentProject = id;
+    else delete settings.currentProject;
+  }
   return { ...header(now, ctx), projects, settings };
 }
 
@@ -488,7 +503,13 @@ function readFile(file: Raw, ctx: BackupContext): { data: ImportData; notes: Imp
   }
   notes.missingFabrics = missing.size;
   const settings = isRecord(file.settings) ? file.settings : {};
-  return { data: { scope: 'all', projects: [...projects.values()], hintSeen: settings.hintSeen === true }, notes };
+  const data: ImportData = { scope: 'all', projects: [...projects.values()], hintSeen: settings.hintSeen === true };
+  // An id this app does not have is ignored, so the app opens on its first project.
+  if (typeof settings.currentProject === 'string') {
+    const id = resolveAlias(ctx.projectAliases, settings.currentProject);
+    if (ctx.projects.some((p) => p.id === id)) data.currentProjectId = id;
+  }
+  return { data, notes };
 }
 
 /** Check backup text, repair what it holds against this app, and count it. Never throws. */
@@ -577,6 +598,7 @@ export function applyBackup(storage: KeyValueStorage, data: ImportData): ApplyRe
       }
     }
     if (data.hintSeen) writeHintSeenTo(storage);
+    if (data.currentProjectId) writeCurrentProjectTo(storage, data.currentProjectId);
     return { ok: true };
   } catch (err) {
     try {
@@ -590,7 +612,8 @@ export function applyBackup(storage: KeyValueStorage, data: ImportData): ApplyRe
 }
 
 /**
- * Open a quilt file without touching other sizes or settings. The device's
+ * Open a quilt file without touching other sizes or settings, except that the
+ * quilt's fabric set becomes the open one. The device's
  * current quilt for that size is kept as an automatic version (by the usual
  * `addVersion` rules), the incoming design is written, and the file's versions
  * are merged into the size's list. A name in the file replaces the size's name,
@@ -609,7 +632,7 @@ export function applyQuiltBackup(
   }
   const { projectId } = project;
   const { sizeId, design } = size;
-  const keys = quiltKeys(projectId, sizeId);
+  const keys = [...quiltKeys(projectId, sizeId), CURRENT_PROJECT_KEY];
   const before = new Map(keys.map((k) => [k, storage.getItem(k)]));
   try {
     let list = readVersionsFrom(storage, projectId, sizeId);
@@ -635,6 +658,8 @@ export function applyQuiltBackup(
     // A file without a name leaves the name on this device alone.
     if (size.quiltName) writeQuiltNameTo(storage, projectId, sizeId, size.quiltName);
     writeLastSizeTo(storage, projectId, sizeId);
+    // The app opens on the quilt's own fabric set.
+    writeCurrentProjectTo(storage, projectId);
     return { ok: true };
   } catch (err) {
     try {

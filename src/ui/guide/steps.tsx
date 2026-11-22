@@ -1,20 +1,44 @@
 /** Step-specific controls for the guide card. Each one is driven by the pattern and collection. */
 import { useEffect, useRef } from 'react';
 import { getSize, setAllRotations } from '../../core/design';
-import type { Design, FabricDef, PatternDef } from '../../core/types';
+import type { Design, FabricDef, PatternDef, ProjectDef } from '../../core/types';
 import type { GuideStepId } from '../../core/storage';
 import { inches, repeatNote } from '../format';
 import { quiltSizeInches } from '../../core/layout';
+import { FabricSetCards } from '../FabricSets';
 import { Icon } from '../Icon';
 import { tapText } from '../pointerWords';
 import { GuideNameField } from '../QuiltName';
 import { REASONS, type CheckpointUpdate } from '../versions/useVersions';
 import { COUNTED_STEPS, type Guide } from './useGuide';
-import { TITLES } from './titles';
+import { stepTitles, TITLES } from './titles';
 
-export function SizeStep({ guide, pattern, design }: { guide: Guide; pattern: PatternDef; design: Design }) {
+export function SizeStep({
+  guide,
+  pattern,
+  design,
+  projects,
+  currentId,
+  onPickProject,
+}: {
+  guide: Guide;
+  pattern: PatternDef;
+  design: Design;
+  /** Every fabric set. With more than one, the step also picks the set. */
+  projects: readonly ProjectDef[];
+  currentId: string;
+  onPickProject(project: ProjectDef): void;
+}) {
+  const multi = projects.length > 1;
   return (
     <>
+      {multi && (
+        <>
+          <h3 className="guide-subhead">Fabric set</h3>
+          <FabricSetCards projects={projects} currentId={currentId} onPick={onPickProject} />
+          <h3 className="guide-subhead">Quilt size</h3>
+        </>
+      )}
       <ul className="guide-sizes" role="radiogroup" aria-label="Quilt size">
         {pattern.sizes.map((s) => {
           const on = s.id === design.sizeId;
@@ -43,7 +67,7 @@ export function SizeStep({ guide, pattern, design }: { guide: Guide; pattern: Pa
       </ul>
       {guide.sizeConflict && (
         <div className="guide-choice" role="group" aria-label="This size already has a design">
-          <p>This size already has a design.</p>
+          <p>{multi ? 'This size already has a design in this fabric set.' : 'This size already has a design.'}</p>
           <div className="guide-choice-actions">
             <button type="button" className="btn btn-small" onClick={guide.startSizeEmpty}>
               Start this size empty
@@ -354,6 +378,7 @@ export function TouchupsStep({ guide }: { guide: Guide }) {
 
 export function DoneStep({
   wide,
+  multi,
   exporting,
   onExport,
   onSaveQuilt,
@@ -366,6 +391,8 @@ export function DoneStep({
   onKeepEditing,
 }: {
   wide: boolean;
+  /** More than one fabric set. */
+  multi: boolean;
   exporting: boolean;
   onExport(): void;
   onSaveQuilt(): void;
@@ -384,12 +411,14 @@ export function DoneStep({
         'Save & export, at the top, has Save quilt file, Open a quilt file, Export PNG and Print build sheet.',
         'The three dots menu has the resets and your data.',
         'Save this as a version from Versions at the top or the three dots menu, then keep trying other layouts.',
+        ...(multi ? ['The set name at the top left, beside the size, switches to another fabric set. Each set keeps its own quilts.'] : []),
       ]
     : [
         'Fat quarters, below the quilt, opens the stack and Shuffle.',
         'Blocks, next to it, moves and turns blocks.',
         'The three dots menu has Save quilt file, Open a quilt file, Export PNG and Print build sheet under Save & export, the resets, and your data.',
         'Save this as a version from the three dots menu, then keep trying other layouts.',
+        ...(multi ? ['Fabric set, in the three dots menu, switches to another fabric set. Each set keeps its own quilts.'] : []),
       ];
   return (
     <>
@@ -441,6 +470,13 @@ export function DoneStep({
 }
 
 /** One plain line for each counted step on the opening overview. */
+function stepLines(multi: boolean): Partial<Record<GuideStepId, string>> {
+  return {
+    ...STEP_LINES,
+    ...(multi ? { size: 'Choose a fabric set, then how big the quilt will be.' } : {}),
+  };
+}
+
 const STEP_LINES: Partial<Record<GuideStepId, string>> = {
   size: 'Choose how big the quilt will be.',
   fabrics: 'Choose each fabric yourself, or let the app pick for you.',
@@ -449,14 +485,16 @@ const STEP_LINES: Partial<Record<GuideStepId, string>> = {
 };
 
 /** The opening overview: the steps in order, what comes after them, then where to get help. */
-export function IntroStep({ onSkip }: { onSkip(): void }) {
+export function IntroStep({ onSkip, multi }: { onSkip(): void; multi: boolean }) {
+  const titles = stepTitles(multi);
+  const lines = stepLines(multi);
   return (
     <>
       <ol className="guide-intro-steps">
         {COUNTED_STEPS.map((s) => (
           <li key={s}>
-            <strong>{TITLES[s]}</strong>
-            {STEP_LINES[s] && <span>{STEP_LINES[s]}</span>}
+            <strong>{titles[s]}</strong>
+            {lines[s] && <span>{lines[s]}</span>}
           </li>
         ))}
       </ol>

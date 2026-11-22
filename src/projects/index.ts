@@ -1,7 +1,8 @@
 import type { ProjectDef } from '../core/types';
 import { stacksHappyPlace } from './stacks-happy-place';
+import { stacksRubyStar } from './stacks-ruby-star';
 
-export const projects: ProjectDef[] = [stacksHappyPlace];
+export const projects: ProjectDef[] = [stacksHappyPlace, stacksRubyStar];
 
 export function getProject(id: string): ProjectDef | undefined {
   return projects.find((p) => p.id === id);

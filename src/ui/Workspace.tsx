@@ -21,10 +21,12 @@ import {
 } from '../core/design';
 import { piecesForSlot, resolvePieces } from '../core/layout';
 import { pngFileName, quiltFileBase } from '../core/fileName';
+import type { SwitchFrom } from '../core/projectChoice';
 import { loadHintSeen, loadQuiltName, saveHintSeen, saveQuiltName } from '../core/storage';
 import type { FabricDef, ProjectDef } from '../core/types';
 import { FabricTray } from './FabricTray';
 import { tapText } from './pointerWords';
+import { FabricSetCards } from './FabricSets';
 import { FatQuarterExplainer } from './FatQuarterDiagram';
 import { GuideCard } from './guide/GuideCard';
 import { TurnChoices } from './guide/steps';
@@ -57,6 +59,7 @@ type NamedAction = 'png' | 'save' | 'print';
 type SheetName =
   | 'lineup'
   | 'size'
+  | 'sets'
   | 'more'
   | 'help'
   | 'versions'
@@ -73,7 +76,15 @@ const NO_DRAG = () => ({
   },
 });
 
-export function Workspace({ project }: { project: ProjectDef }) {
+interface WorkspaceProps {
+  project: ProjectDef;
+  /** Every fabric set. With one, the set controls stay hidden. */
+  projects: readonly ProjectDef[];
+  /** Show another set. `sizeId` is the size open now, which the new set carries over. */
+  onSwitchProject(to: ProjectDef, sizeId: string, from: SwitchFrom): void;
+}
+
+export function Workspace({ project, projects, onSwitchProject }: WorkspaceProps) {
   const { pattern, collection } = project;
   const ds = useDesign(project);
   const { design, update, undo, redo } = ds;
@@ -89,7 +100,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
   const [exporting, setExporting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const versions = useVersions(project, ds, setToast);
-  const data = useDataTransfer(setToast);
+  const data = useDataTransfer(setToast, project.id);
   // Big changes save an automatic version first, so they can be got back after a reload.
   const checkpoint = versions.updateWithCheckpoint;
   // Fabrics she hid. They leave the fabric list, and Fill the rest and Pick at random never choose them.
@@ -148,9 +159,16 @@ export function Workspace({ project }: { project: ProjectDef }) {
   const fabricsById = useMemo(() => new Map(collection.fabrics.map((f) => [f.id, f])), [collection]);
   const overrideCount = Object.keys(design.overrides).length;
 
+  // Load the swatches the quilt uses. The rest load when the canvas first draws them, and the canvas
+  // redraws as each one arrives, so a collection of 100 fabrics is not downloaded on every open.
+  const usedFabrics = useMemo(() => {
+    const ids = new Set<string>(Object.values(design.overrides));
+    for (const id of design.lineup) if (id !== null) ids.add(id);
+    return [...ids].flatMap((id) => fabricsById.get(id) ?? []);
+  }, [design.lineup, design.overrides, fabricsById]);
   useEffect(() => {
-    void imageCache.loadAll(collection.fabrics);
-  }, [collection]);
+    void imageCache.loadAll(usedFabrics);
+  }, [usedFabrics]);
 
   useEffect(() => {
     if (!toast) return;
@@ -349,6 +367,15 @@ export function Workspace({ project }: { project: ProjectDef }) {
     setInfoKey(null);
     setSelectedCell(null);
     setSheet(null);
+  };
+
+  const multiSets = projects.length > 1;
+  const switchSet = (to: ProjectDef, from: SwitchFrom) => {
+    if (to.id === project.id) {
+      setSheet(null);
+      return;
+    }
+    onSwitchProject(to, design.sizeId, from);
   };
 
   const pickSize = (id: string) => {
@@ -672,6 +699,8 @@ export function Workspace({ project }: { project: ProjectDef }) {
     <GuideCard
       guide={guide}
       project={project}
+      projects={projects}
+      onPickProject={(to) => switchSet(to, 'guide')}
       design={design}
       checkpointUpdate={checkpoint}
       fabricsById={fabricsById}
@@ -742,12 +771,25 @@ export function Workspace({ project }: { project: ProjectDef }) {
           <QuiltNameField key={quiltKey} name={quiltName} onSave={saveName} />
           <div className="title-sub">
             {/* The project's title. On a phone there is no room, and it still shows in How to use and the build sheet. */}
-            {wide && (
-              <span className="project-label">
-                {project.title}
-                <span aria-hidden="true"> ·</span>
-              </span>
-            )}
+            {wide &&
+              (multiSets ? (
+                <button
+                  type="button"
+                  className="project-btn"
+                  onClick={() => setSheet('sets')}
+                  aria-label={`Fabric set ${collection.name}. Change fabric set`}
+                  title="Change fabric set"
+                >
+                  <Icon name="swatches" size={18} />
+                  <span className="project-btn-text">{project.title}</span>
+                  <Icon name="chevron" size={16} />
+                </button>
+              ) : (
+                <span className="project-label">
+                  {project.title}
+                  <span aria-hidden="true"> ·</span>
+                </span>
+              ))}
             <button
               type="button"
               className="size-chip-btn"
@@ -933,6 +975,15 @@ export function Workspace({ project }: { project: ProjectDef }) {
         <SizePicker pattern={pattern} sizeId={design.sizeId} onPick={pickSize} />
       </Sheet>
 
+      <Sheet open={sheet === 'sets'} title="Fabric set" onClose={() => setSheet(null)} className="sheet-sets">
+        <FabricSetCards projects={projects} currentId={project.id} onPick={(to) => switchSet(to, 'main')} />
+        <p className="sizes-note">
+          Each fabric set keeps its own quilts, and a quilt uses one set. Nothing is erased when you switch. The{' '}
+          {size.name} size carries over. If the other set has no {size.name} quilt yet, the guide starts at Pick your
+          fabrics.
+        </p>
+      </Sheet>
+
       <Sheet open={sheet === 'lineup'} title="Fat quarter stack" onClose={() => setSheet(null)} className="sheet-lineup">
         {lineup}
       </Sheet>
@@ -948,6 +999,17 @@ export function Workspace({ project }: { project: ProjectDef }) {
               </span>
             </button>
           </li>
+          {multiSets && (
+            <li>
+              <button type="button" className="action" onClick={() => setSheet('sets')}>
+                <Icon name="swatches" />
+                <span>
+                  <strong>Fabric set</strong>
+                  <span>{collection.name}. Switch to another fabric set.</span>
+                </span>
+              </button>
+            </li>
+          )}
           {!wide && (
             <>
               <li className="action-group" role="presentation">
@@ -1027,7 +1089,9 @@ export function Workspace({ project }: { project: ProjectDef }) {
                 <span>
                   {freshNeedsConfirm
                     ? 'Empty this quilt and set it up again from the start.'
-                    : 'Go back to the start of the setup, to pick a size again.'}
+                    : multiSets
+                      ? 'Go back to the start of the setup, to pick a fabric set or size again.'
+                      : 'Go back to the start of the setup, to pick a size again.'}
                 </span>
               </span>
             </button>
@@ -1126,6 +1190,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
       <Sheet open={sheet === 'help'} title="How to use" onClose={() => setSheet(null)} className="sheet-help">
         <Help
           wide={wide}
+          setNames={projects.map((p) => p.collection.name)}
           pattern={pattern}
           pieceCount={pattern.block.pieces.length}
           letterRange={`${pattern.block.pieces[0]?.label ?? ''} to ${pattern.block.pieces[pattern.block.pieces.length - 1]?.label ?? ''}`}
@@ -1151,7 +1216,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
 
       <Sheet open={sheet === 'confirm-guide'} title={`Start fresh with the ${size.name} quilt?`} onClose={() => setSheet(null)}>
         <p className="confirm-text">
-          This empties the {size.name} quilt and starts the setup again. Quilts in your other sizes are not touched.
+          This empties the {size.name} quilt and starts the setup again. Quilts in your other sizes{multiSets ? ' and fabric sets' : ''} are not touched.
           You can undo it.
         </p>
         {excludedIds.size > 0 && (

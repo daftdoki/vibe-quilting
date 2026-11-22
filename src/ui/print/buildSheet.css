@@ -279,6 +279,37 @@
   padding: 0.3mm 2mm;
 }
 
+/* Fabrics in two halves side by side, for quilts with more than 20 different fabrics. */
+.bs-fabrics-split {
+  font-size: 11.5pt;
+  line-height: 1.12;
+}
+
+.bs-fabrics-split td,
+.bs-fabrics-split th {
+  padding-left: 1.2mm;
+  padding-right: 1.2mm;
+}
+
+.bs-fabrics-split .bs-swatch-cell {
+  padding: 0.3mm 1.2mm;
+}
+
+.bs-table .bs-split-gap {
+  border-bottom: 0;
+}
+
+.bs-split-sku {
+  display: block;
+  font-size: 11pt;
+}
+
+.bs-fabrics-split .bs-cell-note {
+  display: block;
+  margin-left: 0;
+  font-size: 11pt;
+}
+
 .bs-tick-wrap {
   display: inline-flex;
   align-items: center;

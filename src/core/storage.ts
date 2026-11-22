@@ -4,6 +4,8 @@ import type { Design, DesignVersion, FabricCollection } from './types';
 export const STORAGE_PREFIX = 'vq:v1:';
 const PREFIX = STORAGE_PREFIX;
 const HINT_KEY = `${PREFIX}hint-seen`;
+/** Id of the fabric set (project) that is open. Missing means the first one. */
+const PROJECT_KEY = `${PREFIX}project`;
 /** The part of `Storage` this module uses, so tests and the backup code can pass a fake. */
 export interface KeyValueStorage {
   getItem(key: string): string | null;
@@ -308,6 +310,27 @@ export function writeLastSizeTo(s: Writer, projectId: string, sizeId: string): v
 export function saveLastSize(projectId: string, sizeId: string): void {
   write(sizeKey(projectId), sizeId);
 }
+
+export function readCurrentProjectFrom(s: Reader | null): string | null {
+  const id = readFrom(s, PROJECT_KEY);
+  return id === null || id === '' ? null : id;
+}
+
+/** The stored id of the open project. Check it against the project list before using it. */
+export function loadCurrentProject(): string | null {
+  return readCurrentProjectFrom(store());
+}
+
+export function writeCurrentProjectTo(s: Writer, projectId: string): void {
+  s.setItem(PROJECT_KEY, projectId);
+}
+
+export function saveCurrentProject(projectId: string): void {
+  write(PROJECT_KEY, projectId);
+}
+
+/** The storage key of the open project, for code that saves and restores keys. */
+export const CURRENT_PROJECT_KEY = PROJECT_KEY;
 
 export function readHintSeenFrom(s: Reader | null): boolean {
   return readFrom(s, HINT_KEY) === '1';

@@ -1,6 +1,6 @@
 # Vibe Quilting
 
-Mock up a quilt on your phone. A guided setup picks a size and fills a stack of fat quarters, and you can tap or drag fabrics onto single pieces after that. Prints draw at their real size, so the mockup shows how the sewn quilt will look. The app saves versions, exports a picture, saves and opens quilt files, and prints a black and white build sheet.
+Mock up a quilt on your phone. A guided setup picks a size and fills a stack of fat quarters, and you can tap or drag fabrics onto single pieces after that. Prints draw at their real size, so the mockup shows how the sewn quilt will look. The app saves versions, exports a picture, saves and opens quilt files, and prints a build sheet to cut and sew from, with fabric pictures and a colour picture of the quilt that can be turned off.
 
 The first project is the Stacks pattern with the Happy Place fat quarter bundle.
 

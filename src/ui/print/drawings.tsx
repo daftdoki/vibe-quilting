@@ -6,14 +6,14 @@
 import { rotatePoint } from '../../core/layout';
 import type { SheetCell, SheetPiece } from '../../core/buildSheet';
 import type { BlockDef, Point } from '../../core/types';
-import { bbox, cardScale, centroid, fitFont, mapSpec, textWidth, type CardSpec } from './geometry';
+import { bbox, cardScale, centroid, DRAW_EDGE_PT, fitFont, mapSpec, textWidth, type CardSpec } from './geometry';
 
 /** Stroke widths in points. */
 const PIECE_LINE = 0.75;
-const BLOCK_LINE = 1.5;
+const BLOCK_LINE = DRAW_EDGE_PT;
 const MARK_LINE = 1.5;
 /** Room around the drawing so the outer line is not cut in half. */
-const EDGE = BLOCK_LINE;
+const EDGE = DRAW_EDGE_PT;
 
 function pts(poly: readonly Point[], s: number, dx = 0, dy = 0): string {
   return poly.map(([x, y]) => `${(x * s + dx).toFixed(2)},${(y * s + dy).toFixed(2)}`).join(' ');
@@ -106,13 +106,16 @@ export function LayoutMap({
   cols,
   rows,
   cells,
+  maxH,
 }: {
   block: BlockDef;
   cols: number;
   rows: number;
   cells: readonly SheetCell[];
+  /** Most height the grid may take, in points. */
+  maxH?: number;
 }) {
-  const m = mapSpec(block, cols, rows);
+  const m = mapSpec(block, cols, rows, maxH);
   const s = m.cellW / block.width;
   const w = m.labelW + cols * m.cellW + (cols - 1) * m.gap;
   const h = rows * m.cellH + (rows - 1) * m.gap;

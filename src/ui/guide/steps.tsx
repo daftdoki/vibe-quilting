@@ -400,18 +400,22 @@ export function DoneStep({
       ) : (
         <GuideNameField onSave={onSaveName} />
       )}
-      <div className="guide-row">
-        <button type="button" className="btn btn-small btn-primary" onClick={onExport} disabled={exporting}>
-          <Icon name="download" size={18} />
-          {exporting ? 'Exporting' : 'Export PNG'}
+      {/* Printing the build sheet is what the design work leads to, so it comes first and stands out. */}
+      <div className="guide-finish">
+        <p>The next step is on paper. The build sheet lists your fabrics and shows every block, ready to cut and sew from.</p>
+        <button type="button" className="btn btn-primary guide-finish-btn" onClick={onPrint} disabled={!canPrint}>
+          <Icon name="print" size={20} />
+          Print build sheet
         </button>
+      </div>
+      <div className="guide-row">
         <button type="button" className="btn btn-small" onClick={onSaveQuilt} disabled={!canSaveQuilt}>
           <Icon name="file" size={18} />
           Save quilt file
         </button>
-        <button type="button" className="btn btn-small" onClick={onPrint} disabled={!canPrint}>
-          <Icon name="print" size={18} />
-          Print build sheet
+        <button type="button" className="btn btn-small" onClick={onExport} disabled={exporting}>
+          <Icon name="download" size={18} />
+          {exporting ? 'Exporting' : 'Export PNG'}
         </button>
         <button type="button" className="btn btn-small" onClick={onKeepEditing}>
           Keep editing

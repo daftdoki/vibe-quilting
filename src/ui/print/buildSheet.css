@@ -2,13 +2,19 @@
  * Build sheet. Black line art on white, sized in points and millimetres so
  * the screen preview and the printout match. Text rule: body text 12pt or
  * more, tables 12.5pt, headings 18 to 22pt, so it reads easily on paper.
+ * The only colour is the fabric pictures and the quilt picture, which can be
+ * turned off.
  *
- * Every page fits the smaller printable box of Letter and A4 with 12mm
- * margins: 186mm wide by 255mm tall. No paper size is forced.
+ * Every page is a fixed box, var(--bs-page-w) by var(--bs-page-h): 186mm by
+ * 242mm. The numbers come from geometry.ts through custom properties. With
+ * a 10mm page margin, Letter has 195.9mm by 259.4mm to print on and A4 has
+ * 190mm by 277mm, so the box fits both with at least 4mm to spare each way,
+ * and no paper size is forced. On screen each box sits on a 210mm by 279mm
+ * sheet.
  */
 
 @page {
-  margin: 12mm;
+  margin: 10mm;
 }
 
 /* Preview overlay (screen only) */
@@ -41,10 +47,26 @@
   font-weight: 800;
 }
 
+.bs-toolbar [aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.bs-count {
+  margin: 0;
+  min-width: 7em;
+  font-size: 15px;
+  font-weight: 650;
+}
+
 .bs-size button {
   min-width: 0;
   white-space: normal;
   line-height: 1.2;
+}
+
+.bs-size button:not(:first-child):not(:last-child)[aria-pressed='true'] {
+  background: var(--yellow);
 }
 
 .bs-toolbar-note {
@@ -66,6 +88,13 @@
   padding: 16px 12px calc(32px + var(--safe-b));
 }
 
+.bs-preparing {
+  margin: 48px auto;
+  text-align: center;
+  font-size: 18px;
+  color: var(--ink-dim);
+}
+
 @media (min-width: 900px) {
   .bs-overlay {
     font-size: 17px;
@@ -76,115 +105,159 @@
   }
 }
 
-/* Paper */
+/* Paper. On screen the page box gets a 12mm white edge, like a sheet of paper. */
 
 .bs-page {
-  width: 210mm;
-  min-height: 279mm;
-  margin: 0 auto 16px;
+  margin: 0 auto 24px;
   padding: 12mm;
+  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.45);
+}
+
+.bs-fixed {
+  display: flex;
+  flex-direction: column;
+  width: calc(var(--bs-page-w) + 24mm);
+  height: calc(var(--bs-page-h) + 24mm);
+  overflow: hidden;
+}
+
+.bs-flow {
+  width: calc(var(--bs-page-w) + 24mm);
+  min-height: calc(var(--bs-page-h) + 24mm);
+}
+
+/* The hidden box the blocks are measured in: the page's content width, nothing else. */
+.bs-measure {
+  position: absolute;
+  top: 0;
+  left: -10000px;
+  width: var(--bs-page-w);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.bs-page,
+.bs-measure {
   background: #fff;
   color: #000;
   color-scheme: light;
   font-family: var(--font);
   font-size: 12pt;
   line-height: 1.35;
-  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.45);
 }
 
-.bs-page h1,
-.bs-page h2,
-.bs-page h3,
-.bs-page p,
-.bs-page ol,
-.bs-page ul,
-.bs-page dl {
+.bs-running {
+  flex: none;
+  height: var(--bs-running-h);
+  margin: 0 0 var(--bs-running-gap) !important;
+  padding: 1.4mm 0 0;
+  border-bottom: 0.5pt solid #000;
+  font-size: 12pt;
+  line-height: 4.6mm;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bs-fixed .bs-body {
+  flex: none;
+  height: var(--bs-body-h);
+  overflow: hidden;
+}
+
+.bs-folio {
+  flex: none;
+  height: var(--bs-folio-h);
+  margin: var(--bs-folio-gap) 0 0 !important;
+  font-size: 12pt;
+  line-height: var(--bs-folio-h);
+  text-align: right;
+}
+
+/* Each block contains its own margins, so stacked heights add up to what was measured. */
+.bs-blk {
+  display: flow-root;
+}
+
+:is(.bs-page, .bs-measure) :is(h1, h2, h3, p, ol, ul, dl) {
   margin: 0;
 }
 
-.bs-page h1 {
+:is(.bs-page, .bs-measure) h1 {
   font-size: 22pt;
   font-weight: 800;
   line-height: 1.15;
 }
 
-.bs-page h2 {
+:is(.bs-page, .bs-measure) h2 {
   margin-bottom: 3mm;
   font-size: 18pt;
   font-weight: 800;
   line-height: 1.2;
-  break-after: avoid;
-  page-break-after: avoid;
 }
 
-.bs-page h3 {
+:is(.bs-page, .bs-measure) h3 {
   font-size: 13pt;
   font-weight: 750;
-  break-after: avoid;
-  page-break-after: avoid;
-}
-
-.bs-running {
-  margin-bottom: 4mm !important;
-  padding-bottom: 1.5mm;
-  border-bottom: 0.5pt solid #000;
-  font-size: 12pt;
 }
 
 .bs-head {
   display: grid;
-  gap: 3mm;
-  margin-bottom: 7mm;
+  gap: 2mm;
 }
 
 .bs-subtitle {
-  margin-top: -2mm !important;
+  margin-top: -1mm !important;
   font-size: 14pt;
   font-weight: 600;
 }
 
+/* Two facts to a row. */
+/* The facts run on in one or two lines, to leave the page for the fabrics table. */
 .bs-facts {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 1mm 6mm;
+  display: block;
   font-size: 13pt;
+  line-height: 1.3;
 }
 
 .bs-facts dt {
+  display: inline;
   font-weight: 700;
 }
 
+.bs-facts dt::after {
+  content: ' ';
+}
+
 .bs-facts dd {
-  margin: 0;
+  display: inline;
+  margin: 0 5mm 0 0;
 }
 
 .bs-lead {
-  padding: 2.5mm 3mm;
+  padding: 1.5mm 3mm;
   border: 1pt solid #000;
   font-size: 13pt;
   font-weight: 700;
 }
 
-.bs-section {
-  margin-bottom: 7mm;
-}
-
-.bs-section > p {
-  margin-top: 2mm;
-}
+/* Tables. Fixed column widths, so every page's part of a table lines up and measures the same. */
 
 .bs-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 12.5pt;
+  line-height: 1.25;
 }
 
 .bs-table th,
 .bs-table td {
-  padding: 1.6mm 2mm;
+  padding: 0.45mm 2mm;
   border-bottom: 0.5pt solid #000;
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
+  overflow-wrap: break-word;
 }
 
 .bs-table thead th {
@@ -192,27 +265,18 @@
   font-weight: 750;
 }
 
-.bs-table tr {
-  break-inside: avoid;
-  page-break-inside: avoid;
-}
-
-.bs-table thead {
-  display: table-header-group;
-}
-
 .bs-no {
-  width: 12mm;
   font-weight: 800;
 }
 
 .bs-cell-note {
-  display: block;
+  display: inline;
+  margin-left: 2mm;
   font-size: 12pt;
 }
 
-.bs-have {
-  width: 18mm;
+.bs-table .bs-swatch-cell {
+  padding: 0.3mm 2mm;
 }
 
 .bs-tick-wrap {
@@ -222,6 +286,11 @@
   font-size: 12pt;
 }
 
+/* In the table the tick box sits outside the text line, so it does not make the row taller. */
+.bs-have .bs-tick-wrap {
+  display: flex;
+}
+
 .bs-tick {
   display: inline-block;
   width: 5mm;
@@ -229,16 +298,26 @@
   border: 1pt solid #000;
 }
 
+/* Fabric pictures. Real images, since browsers leave out background images when printing. */
+
+.bs-swatch {
+  display: block;
+  flex: none;
+  width: var(--bs-table-swatch);
+  height: var(--bs-table-swatch);
+  border: 0.5pt solid #000;
+  object-fit: cover;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
 .bs-box {
-  margin-top: 4mm;
   padding: 3mm 4mm;
   border: 1pt solid #000;
-  break-inside: avoid;
-  page-break-inside: avoid;
 }
 
 .bs-box p {
-  margin: 1mm 0 2mm;
+  margin: 1mm 0 2mm !important;
 }
 
 .bs-box ul {
@@ -249,101 +328,142 @@
   margin-top: 1mm;
 }
 
-.bs-empty-note {
-  margin-top: 3mm !important;
-}
-
-.bs-stacking {
-  break-inside: avoid;
-  page-break-inside: avoid;
-}
+/* Stacking order: one block, never split. */
 
 .bs-steps {
   display: grid;
-  gap: 1.5mm;
-  padding-left: 6mm;
+  gap: 1mm;
+  padding-left: 6mm !important;
 }
 
-.bs-stacking h3 {
-  margin-top: 4mm;
-  margin-bottom: 2mm;
+.bs-stack-intro {
+  margin-top: 2mm !important;
 }
 
-/* Two columns that read down, then across. A grid prints the same in every browser, which CSS columns do not. */
+.bs-stack-h {
+  margin: 3mm 0 2mm !important;
+}
+
+/* Columns that read down, then across. A grid prints the same in every browser, which CSS columns do not. */
 .bs-stack {
   display: grid;
   grid-auto-flow: column;
-  grid-template-columns: 1fr 1fr;
-  column-gap: 8mm;
-  margin: 0;
+  column-gap: 4mm;
   padding: 0;
   list-style: none;
-  font-size: 12.5pt;
+  font-size: 12pt;
+  line-height: 1.2;
 }
 
 .bs-stack li {
-  padding: 0.8mm 0;
+  display: flex;
+  align-items: center;
+  gap: 1.5mm;
+  min-width: 0;
+  padding: 0.6mm 0;
   border-bottom: 0.5pt solid #000;
-  break-inside: avoid;
-  page-break-inside: avoid;
 }
 
-/* Block cards */
-
-.bs-section-head {
-  margin-bottom: 4mm;
+.bs-stack-pos {
+  flex: none;
+  min-width: 1.4em;
+  font-weight: 800;
+  text-align: right;
 }
 
-.bs-section-head p {
-  margin-top: -1mm;
+.bs-stack-name {
+  min-width: 0;
+}
+
+.bs-stack .bs-swatch {
+  width: var(--bs-stack-swatch);
+  height: var(--bs-stack-swatch);
+}
+
+.bs-stack-small .bs-stack .bs-swatch {
+  width: var(--bs-stack-swatch-small);
+  height: var(--bs-stack-swatch-small);
+}
+
+/* Block cards. The grid fills the page under the heading. */
+
+.bs-fixed .bs-cards {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.bs-cards-head {
+  flex: none;
+  height: var(--bs-cards-head-h);
+}
+
+.bs-cards-head p {
+  margin-top: -1mm !important;
 }
 
 .bs-card-grid {
   display: grid;
-  justify-items: center;
+  justify-items: stretch;
 }
 
-.bs-cards-large .bs-card-grid {
-  gap: 5mm 6mm;
-}
-
-.bs-cards-compact .bs-card-grid {
-  gap: 3mm 4mm;
+.bs-fixed .bs-card-grid {
+  flex: 1;
+  min-height: 0;
 }
 
 .bs-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 100%;
-  padding: 2mm 2mm 1mm;
+  min-width: 0;
+  min-height: 0;
+  padding: 1.5mm 1.5mm 0.5mm;
   border: 0.5pt solid #000;
+  overflow: hidden;
   break-inside: avoid;
-  page-break-inside: avoid;
 }
 
 .bs-card-head {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  margin-bottom: 1.5mm;
+}
+
+.bs-card-head h3 {
+  line-height: 1.2;
 }
 
 .bs-cards-large .bs-card-head h3 {
   font-size: 18pt;
 }
 
+.bs-cards-medium .bs-card-head h3 {
+  font-size: 16pt;
+}
+
 .bs-cards-compact .bs-card-head h3 {
   font-size: 15pt;
 }
 
+.bs-card-draw {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
 .bs-card-foot {
+  flex: none;
   width: 100%;
-  min-height: 1.35em;
-  margin-top: 1mm !important;
+  margin-top: 0.5mm !important;
   font-size: 12pt;
+  line-height: 1.25;
   text-align: center;
+  overflow: hidden;
 }
 
 .bs-draw {
@@ -395,7 +515,44 @@
   font-size: 13pt;
 }
 
-/* Print: only the pages, flowing one after another. */
+/* The finished quilt */
+
+.bs-picture {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.bs-picture-head {
+  flex: none;
+  height: var(--bs-picture-head-h);
+  margin: 0 !important;
+}
+
+.bs-picture-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.bs-quilt-pic {
+  display: block;
+  outline: 0.75pt solid #000;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.bs-picture-caption {
+  flex: none;
+  height: var(--bs-picture-caption-h);
+  padding-top: 3mm;
+  font-size: 13pt;
+  text-align: center;
+}
+
+/* Print: only the pages, one page box to a sheet of paper. */
 @media print {
   html.has-build-sheet,
   html.has-build-sheet body,
@@ -424,7 +581,9 @@
     color: #000;
   }
 
-  .bs-toolbar {
+  .bs-toolbar,
+  .bs-measure,
+  .bs-preparing {
     display: none !important;
   }
 
@@ -438,21 +597,25 @@
     zoom: 1 !important;
   }
 
-  /* A hair of side padding keeps the outer borders inside the printable area. */
   .bs-page {
-    width: auto;
-    min-height: 0;
     margin: 0;
-    padding: 0 0.5mm;
-    box-sizing: border-box;
+    padding: 0;
     box-shadow: none;
   }
 
-  .bs-changes {
+  .bs-fixed {
+    width: var(--bs-page-w);
+    height: var(--bs-page-h);
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
+  .bs-flow {
+    width: var(--bs-page-w);
+    min-height: 0;
+  }
+
+  /* Breaks only between pages: never after the last, so no blank page follows. */
   .bs-page + .bs-page {
     break-before: page;
     page-break-before: always;

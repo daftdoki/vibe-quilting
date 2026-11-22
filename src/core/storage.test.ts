@@ -7,15 +7,18 @@ import {
   loadGuide,
   loadLastSize,
   loadQuiltName,
+  loadSheetPrefs,
   normalizeQuiltName,
   parseDataKey,
   parseGuideProgress,
   parseExcluded,
+  parseSheetPrefs,
   saveDesign,
   saveExcluded,
   saveGuide,
   saveLastSize,
   saveQuiltName,
+  saveSheetPrefs,
   setWritesFrozen,
 } from './storage';
 import { makeCollection } from './test-fixtures';
@@ -215,5 +218,28 @@ describe('quilt names', () => {
 
   it('parseDataKey knows the name key', () => {
     expect(parseDataKey('vq:v1:name:p:throw')).toEqual({ kind: 'name', projectId: 'p', sizeId: 'throw' });
+  });
+});
+
+describe('build sheet choices', () => {
+  it('defaults to nine cards to a page with fabric pictures and the quilt picture', () => {
+    expect(loadSheetPrefs()).toEqual({ cardSize: 'compact', pictures: true, quiltPicture: true });
+  });
+
+  it('remembers the choices under a vq:v1: key that backups ignore', () => {
+    saveSheetPrefs({ cardSize: 'compact', pictures: false, quiltPicture: false });
+    expect(loadSheetPrefs()).toEqual({ cardSize: 'compact', pictures: false, quiltPicture: false });
+    expect(localStorage.getItem('vq:v1:build-sheet')).not.toBeNull();
+    expect(parseDataKey('vq:v1:build-sheet')).toBeNull();
+  });
+
+  it('falls back to the default for bad or partial values', () => {
+    const all = { cardSize: 'compact', pictures: true, quiltPicture: true };
+    expect(parseSheetPrefs('not json')).toEqual(all);
+    expect(parseSheetPrefs('{"cardSize":"huge","quiltPicture":"yes"}')).toEqual(all);
+    expect(parseSheetPrefs('{"pictures":false}')).toEqual({ ...all, pictures: false });
+    expect(parseSheetPrefs('{"cardSize":"large"}')).toEqual({ ...all, cardSize: 'large' });
+    // Six to a page was offered briefly. A stored choice of it reads as the default.
+    expect(parseSheetPrefs('{"cardSize":"medium"}')).toEqual(all);
   });
 });

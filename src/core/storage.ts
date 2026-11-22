@@ -408,3 +408,45 @@ export function saveQuiltName(projectId: string, sizeId: string, name: string): 
   else write(nameKey(projectId, sizeId), clean);
   return clean;
 }
+
+/**
+ * Build sheet choices: card size, whether fabric pictures print, and whether
+ * the colour picture of the quilt gets a page. A
+ * preference for this device, not part of any quilt, so backups leave it out.
+ */
+export interface SheetPrefs {
+  cardSize: 'large' | 'medium' | 'compact';
+  pictures: boolean;
+  quiltPicture: boolean;
+}
+
+// Nine cards to a page is the default. It fills the page best, because a block is taller than wide.
+export const DEFAULT_SHEET_PREFS: SheetPrefs = { cardSize: 'compact', pictures: true, quiltPicture: true };
+
+const SHEET_PREFS_KEY = `${PREFIX}build-sheet`;
+
+/** Stored text to choices. Anything missing or unknown takes the default. */
+export function parseSheetPrefs(raw: string | null): SheetPrefs {
+  if (raw === null) return { ...DEFAULT_SHEET_PREFS };
+  try {
+    const v: unknown = JSON.parse(raw);
+    if (!isRecord(v)) return { ...DEFAULT_SHEET_PREFS };
+    return {
+      cardSize:
+        // 'medium' (6 to a page) was offered briefly and left wide empty margins. It reads as the default.
+        v.cardSize === 'large' || v.cardSize === 'compact' ? v.cardSize : DEFAULT_SHEET_PREFS.cardSize,
+      pictures: typeof v.pictures === 'boolean' ? v.pictures : DEFAULT_SHEET_PREFS.pictures,
+      quiltPicture: typeof v.quiltPicture === 'boolean' ? v.quiltPicture : DEFAULT_SHEET_PREFS.quiltPicture,
+    };
+  } catch {
+    return { ...DEFAULT_SHEET_PREFS };
+  }
+}
+
+export function loadSheetPrefs(): SheetPrefs {
+  return parseSheetPrefs(read(SHEET_PREFS_KEY));
+}
+
+export function saveSheetPrefs(prefs: SheetPrefs): void {
+  write(SHEET_PREFS_KEY, JSON.stringify({ cardSize: prefs.cardSize, pictures: prefs.pictures, quiltPicture: prefs.quiltPicture }));
+}

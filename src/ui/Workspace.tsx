@@ -729,7 +729,7 @@ export function Workspace({ project }: { project: ProjectDef }) {
       key: 'print',
       icon: 'print',
       label: 'Print build sheet',
-      description: canPrint ? 'A black and white reference for cutting and sewing.' : 'Nothing to print yet.',
+      description: canPrint ? 'A printable reference for cutting and sewing.' : 'Nothing to print yet.',
       disabled: !canPrint,
       onSelect: printSheet,
     },
@@ -776,6 +776,18 @@ export function Workspace({ project }: { project: ProjectDef }) {
               >
                 <Icon name="versions" />
                 <span className="btn-label">Versions</span>
+              </button>
+              {/* The build sheet is where designing ends, so it has its own button and is not only in the menu. */}
+              <button
+                type="button"
+                className="btn topbar-btn topbar-print"
+                onClick={printSheet}
+                disabled={!canPrint}
+                aria-label="Print build sheet"
+                title={canPrint ? 'Print a build sheet to cut and sew from' : 'Nothing to print yet'}
+              >
+                <Icon name="print" />
+                <span className="btn-label">Build sheet</span>
               </button>
               <SaveMenu items={saveItems} buttonRef={saveMenuBtnRef} />
             </>
@@ -842,6 +854,18 @@ export function Workspace({ project }: { project: ProjectDef }) {
               <Icon name="reset" size={18} />
               Start fresh
             </button>
+            {!wide && canPrint && (
+              <button
+                type="button"
+                className="resume-btn print-pill"
+                onClick={printSheet}
+                aria-label="Print build sheet"
+                title="Print a build sheet to cut and sew from"
+              >
+                <Icon name="print" size={18} />
+                Build sheet
+              </button>
+            )}
           </div>
           <div className="status-slot" aria-live="polite">
             {status && <div className={`status status-${tapMode}`}>{status}</div>}
